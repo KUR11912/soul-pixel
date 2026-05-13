@@ -420,6 +420,13 @@ export class EquipmentScene extends Phaser.Scene {
       return
     }
 
+    if (event.code === 'KeyI') {
+      this.scene.stop()
+      if (!this.scene.isActive('InventoryScene')) this.scene.launch('InventoryScene')
+      this.scene.bringToTop('InventoryScene')
+      return
+    }
+
     if (event.code === 'KeyM') {
       this.scene.stop()
       if (!this.scene.isActive('MapScene')) this.scene.launch('MapScene')

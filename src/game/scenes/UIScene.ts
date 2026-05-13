@@ -1,75 +1,76 @@
-﻿import Phaser from 'phaser'
+import Phaser from 'phaser'
+import { readSaveFromRegistry } from '../save/SaveStore'
 
 export class UIScene extends Phaser.Scene {
-  private panel!: Phaser.GameObjects.Graphics
-  private hpText!: Phaser.GameObjects.Text
-  private enemyText!: Phaser.GameObjects.Text
+  private recoverCooldownUntil = 0
 
   constructor() {
     super('UIScene')
   }
 
   create(): void {
-    this.panel = this.add.graphics()
-    this.drawPanel()
-
-    this.hpText = this.add
-      .text(20, 18, '', {
-        fontFamily: 'monospace',
-        fontSize: '14px',
-        color: '#e5f4ff',
-      })
-      .setScrollFactor(0)
-      .setDepth(101)
-
-    this.enemyText = this.add
-      .text(20, 40, '', {
-        fontFamily: 'monospace',
-        fontSize: '12px',
-        color: '#9fb8cc',
-      })
-      .setScrollFactor(0)
-      .setDepth(101)
-
     this.add
-      .text(20, 58, 'Move: WASD/Arrows  Attack: J/K  Menus: E/M/P  Save: L', {
-        fontFamily: 'monospace',
-        fontSize: '11px',
-        color: '#7f95aa',
-      })
+      .image(0, 0, 'hud-status-bar')
+      .setOrigin(0, 0)
       .setScrollFactor(0)
-      .setDepth(101)
+      .setDepth(100)
 
     this.refresh()
 
-    this.registry.events.on('changedata-hp', this.refresh, this)
-    this.registry.events.on('changedata-maxHp', this.refresh, this)
-    this.registry.events.on('changedata-enemyCount', this.refresh, this)
+    this.registry.events.on('changedata-saveData', this.refresh, this)
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.registry.events.off('changedata-hp', this.refresh, this)
-      this.registry.events.off('changedata-maxHp', this.refresh, this)
-      this.registry.events.off('changedata-enemyCount', this.refresh, this)
+      this.registry.events.off('changedata-saveData', this.refresh, this)
     })
   }
 
-  private drawPanel(): void {
-    this.panel.clear()
-    this.panel.fillStyle(0x11161f, 0.9)
-    this.panel.fillRect(12, 12, 280, 62)
-    this.panel.lineStyle(2, 0x7dd3fc, 0.95)
-    this.panel.strokeRect(12, 12, 280, 62)
-    this.panel.setScrollFactor(0)
-    this.panel.setDepth(100)
+  private refresh(): void {
+    const save = readSaveFromRegistry(this)
+    const mapId = save.runtime.mapId
+    const activeGameplay = this.getActiveGameplaySceneKey()
+    this.tryRecoverGameplayScene(activeGameplay, mapId)
   }
 
-  private refresh(): void {
-    const hp = Math.max(0, Number(this.registry.get('hp') ?? 0))
-    const maxHp = Math.max(0, Number(this.registry.get('maxHp') ?? 0))
-    const enemies = Math.max(0, Number(this.registry.get('enemyCount') ?? 0))
-    const bar = '█'.repeat(hp) + '░'.repeat(Math.max(0, maxHp - hp))
+  update(): void {
+    this.refresh()
+  }
 
-    this.hpText.setText(`HP ${hp}/${maxHp} [${bar}]`)
-    this.enemyText.setText(`Enemies: ${enemies}`)
+  private getActiveGameplaySceneKey(): 'Level01Scene' | 'Level02Scene' | 'Level03Scene' | null {
+    if (this.scene.isActive('Level01Scene')) return 'Level01Scene'
+    if (this.scene.isActive('Level02Scene')) return 'Level02Scene'
+    if (this.scene.isActive('Level03Scene')) return 'Level03Scene'
+    return null
+  }
+
+  private tryRecoverGameplayScene(
+    activeGameplay: 'Level01Scene' | 'Level02Scene' | 'Level03Scene' | null,
+    mapId: string,
+  ): void {
+    if (activeGameplay) return
+    if (this.time.now < this.recoverCooldownUntil) return
+
+    const target =
+      mapId === 'level02' ? 'Level02Scene' : mapId === 'level03' ? 'Level03Scene' : 'Level01Scene'
+    if (!this.isSceneRegistered(target)) return
+    this.recoverCooldownUntil = this.time.now + 1000
+
+    try {
+      if (this.scene.isSleeping(target)) {
+        this.scene.wake(target)
+      } else if (!this.scene.isActive(target)) {
+        this.scene.run(target)
+      }
+      this.scene.bringToTop('UIScene')
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[UIScene] recover gameplay scene failed:', error)
+    }
+  }
+
+  private isSceneRegistered(sceneKey: string): boolean {
+    const manager = this.scene.manager as Phaser.Scenes.SceneManager & {
+      keys?: Record<string, unknown>
+    }
+    return !!manager.keys?.[sceneKey]
   }
 }

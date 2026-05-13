@@ -1,6 +1,9 @@
 import Phaser from 'phaser'
 import { loadSaveData } from '../save/SaveStore'
 
+const MAP_OPEN_FRAME_INDEXES = Array.from({ length: 24 }, (_, index) => index)
+const MAP_OPEN_FINAL_FRAME_INDEX = 23
+
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('BootScene')
@@ -10,86 +13,506 @@ export class BootScene extends Phaser.Scene {
     this.load.image('tiles32', 'assets/art/tilesets/env_ground.png')
     this.load.image('bg-main', 'assets/art/tilesets/main_background.png')
 
-    this.load.image('eq-frame-outer', 'assets/ui/equipment/eq_frame_outer.png')
-    this.load.image('eq-panel-base', 'assets/ui/equipment/eq_panel_base.png')
-    this.load.image('eq-panel-profile', 'assets/ui/equipment/eq_panel_profile.png')
-    this.load.image('eq-panel-backpack', 'assets/ui/equipment/eq_panel_backpack.png')
-    this.load.image('eq-panel-slots', 'assets/ui/equipment/eq_panel_slots.png')
-    this.load.image('eq-labels-slots', 'assets/ui/equipment/eq_labels_slots.png')
-    this.load.image('eq-title-text', 'assets/ui/equipment/eq_text_title.png')
-    this.load.image('eq-btn-idle', 'assets/ui/equipment/eq_button_idle.png')
-    this.load.image('eq-btn-active', 'assets/ui/equipment/eq_button_active.png')
-    this.load.image('eq-btn-text-equip', 'assets/ui/equipment/eq_text_equip.png')
-    this.load.image('eq-btn-text-map', 'assets/ui/equipment/eq_text_map.png')
-    this.load.image('eq-btn-text-files', 'assets/ui/equipment/eq_text_files.png')
-
-    this.load.image('map-bg-full', 'assets/ui/map/map_bg_full.png')
-    this.load.image('map-frame-outer', 'assets/ui/map/map_frame_outer.png')
-    this.load.image('map-panel-main', 'assets/ui/map/map_panel_main.png')
-    this.load.image('map-panel-right', 'assets/ui/map/map_panel_right.png')
-    this.load.image('map-text-title', 'assets/ui/map/map_text_title.png')
-    this.load.image('map-text-equip', 'assets/ui/map/map_text_equip.png')
-    this.load.image('map-text-map', 'assets/ui/map/map_text_map.png')
-    this.load.image('map-text-files', 'assets/ui/map/map_text_files.png')
-    this.load.image('map-btn-idle', 'assets/ui/map/map_button_idle.png')
-    this.load.image('map-btn-idle-alt', 'assets/ui/map/map_button_idle_alt.png')
-    this.load.image('map-btn-active', 'assets/ui/map/map_button_active.png')
-
-    this.load.image('files-bg-full', 'assets/ui/files/files_bg_full.png')
-    this.load.image('files-frame-outer', 'assets/ui/files/files_frame_outer.png')
-    this.load.image('files-panel-main', 'assets/ui/files/files_panel_main.png')
-    this.load.image('files-title-text', 'assets/ui/files/files_text_title.png')
-    this.load.image('files-btn-idle', 'assets/ui/files/files_button_idle.png')
-    this.load.image('files-btn-idle-alt', 'assets/ui/files/files_button_idle_alt.png')
-    this.load.image('files-btn-active', 'assets/ui/files/files_button_active.png')
-    this.load.image('files-btn-text-equip', 'assets/ui/files/files_text_equip.png')
-    this.load.image('files-btn-text-map', 'assets/ui/files/files_text_map.png')
-    this.load.image('files-btn-text-files', 'assets/ui/files/files_text_files.png')
+    this.load.image('eq-ui-bg', 'assets/ui/equipment/items/bg.png')
+    this.load.image(
+      'eq-ui-reference',
+      'assets/ui/equipment/items/inventory界面euqipment部分.png',
+    )
+    this.load.image('eq-ui-header-brush', 'assets/ui/equipment/items/Attributes底.png')
+    this.load.image('eq-ui-tab-selected', 'assets/ui/equipment/items/选中态标签.png')
+    this.load.image('eq-ui-tab-idle-left', 'assets/ui/equipment/items/未选中标签（左）.png')
+    this.load.image('eq-ui-tab-idle-mid', 'assets/ui/equipment/items/未选中标签（中）.png')
+    this.load.image('eq-ui-equipment-strip', 'assets/ui/equipment/items/物品选中标签底.png')
+    this.load.image('eq-ui-slot-frame', 'assets/ui/equipment/items/物品栏框.png')
+    this.load.image('eq-ui-slot-frame-selected', 'assets/ui/equipment/items/物品栏选中框.png')
+    this.load.image('eq-ui-keycap', 'assets/ui/equipment/items/普通按键底.png')
+    this.load.image('eq-ui-keycap-wide', 'assets/ui/equipment/items/长按键底.png')
+    this.load.image('eq-ui-bar-vitality', 'assets/ui/equipment/items/Vitality数值条png.png')
+    this.load.image('eq-ui-bar-endurance', 'assets/ui/equipment/items/Endurance数值条.png')
+    this.load.image('eq-ui-bar-mind', 'assets/ui/equipment/items/mind数值条.png')
+    this.load.image('eq-ui-icon-vitality', 'assets/ui/equipment/items/Vitality标志.png')
+    this.load.image('eq-ui-icon-endurance', 'assets/ui/equipment/items/Endurance标志.png')
+    this.load.image('eq-ui-icon-mind', 'assets/ui/equipment/items/Mind标志.png')
+    this.load.image('eq-ui-icon-hp', 'assets/ui/equipment/items/HP标志.png')
+    this.load.image('eq-ui-icon-fp', 'assets/ui/equipment/items/FP标志.png')
+    this.load.image('eq-ui-weapon-card', 'assets/ui/equipment/items/M1917图标.png')
+    this.load.image('eq-ui-weapon-wide', 'assets/ui/equipment/items/m1917.png')
+    this.load.image('eq-ui-item-grenade', 'assets/ui/equipment/items/手雷图标.png')
+    this.load.image('eq-ui-item-cigarettes', 'assets/ui/equipment/items/香烟物品.png')
+    this.load.image('hud-status-bar', 'assets/ui/status/status_bar.png')
 
     this.load.image('start-bg-full', 'assets/ui/start/start_bg_full.png')
+    this.load.image('start-desk-base', 'assets/ui/start/desk_base.png')
+    this.load.image('start-prop-lamp', 'assets/ui/start/lamp_body.png')
+    this.load.image('start-prop-cup', 'assets/ui/start/cup_body.png')
+    this.load.image('start-prop-compass', 'assets/ui/start/compass_body.png')
+    this.load.image('start-map-mask-source', 'assets/ui/start/start_map_mask.png')
+    this.load.video('start-map-video-alpha', 'assets/ui/start/map_alpha.webm', true)
+    this.load.video('start-map-video', 'assets/ui/start/map.mp4', true)
+    this.load.video('start-map-video-primary', 'assets/ui/start/MP3.mp4', true)
+    this.load.image('start-title-overlay', 'assets/ui/start/start_title_overlay.png')
     this.load.image('start-btn-start', 'assets/ui/start/start_btn_start.png')
     this.load.image('start-btn-continue', 'assets/ui/start/start_btn_continue.png')
     this.load.image('start-btn-archives', 'assets/ui/start/start_btn_archives.png')
     this.load.image('start-btn-options', 'assets/ui/start/start_btn_options.png')
     this.load.image('start-btn-exit', 'assets/ui/start/start_btn_exit.png')
-
-    const itemIds = [
-      'gas_mask',
-      'field_coat',
-      'service_rifle',
-      'trench_club',
-      'supply_bag',
-      'first_aid',
-      'ammo_crate',
-      'ration_can',
-      'bandage_roll',
-      'wire_pliers',
-    ]
-    for (const id of itemIds) {
-      this.load.image(`eq-item-${id}`, `assets/ui/equipment/items/${id}.png`)
+    this.load.image(
+      'eq-ui-state-open-tabs',
+      'assets/ui/equipment/anims/open/tab/frame/上部标签栏_00089.png',
+    )
+    this.load.image(
+      'eq-ui-state-revolver-tabs',
+      'assets/ui/equipment/anims/weapon_revolver_focus/tab/frame/上部标签栏_00220.png',
+    )
+    this.load.image(
+      'eq-ui-state-grenade-tabs',
+      'assets/ui/equipment/anims/item_grenade_focus/tab/frame/上部标签栏_00230.png',
+    )
+    for (let frame = 0; frame <= 81; frame += 1) {
+      const padded = frame.toString().padStart(5, '0')
+      this.load.image(
+        `eq-ui-frame-open-${padded}`,
+        `assets/ui/equipment/anims/open/body/frames/inven_${padded}.png`,
+      )
     }
+    for (let frame = 65; frame <= 118; frame += 1) {
+      const padded = frame.toString().padStart(5, '0')
+      this.load.image(
+        `eq-ui-frame-revolver-${padded}`,
+        `assets/ui/equipment/anims/weapon_revolver_focus/body/frames/inven_${padded}.png`,
+      )
+    }
+    for (let frame = 128; frame <= 226; frame += 1) {
+      const padded = frame.toString().padStart(5, '0')
+      this.load.image(
+        `eq-ui-frame-grenade-${padded}`,
+        `assets/ui/equipment/anims/item_grenade_focus/body/frames/inven_${padded}.png`,
+      )
+    }
+      for (const frame of MAP_OPEN_FRAME_INDEXES) {
+        const padded = frame.toString().padStart(5, '0')
+        this.load.image(
+          `map-ui-frame-open-${padded}`,
+          `assets/ui/map/anims/open/body/frames/Map界切图3_${padded}.png`,
+        )
+      }
+      this.load.image(
+        'map-ui-state-final',
+        `assets/ui/map/anims/open/body/frames/Map界切图3_${MAP_OPEN_FINAL_FRAME_INDEX.toString().padStart(5, '0')}.png`,
+      )
+      for (let frame = 0; frame <= 17; frame += 1) {
+        const padded = frame.toString().padStart(5, '0')
+        this.load.image(
+          `files-ui-frame-open-${padded}`,
+          `assets/ui/files/anima/file89_${padded}.png`,
+        )
+      }
+    this.load.image('start-btn-burn-plate', 'assets/ui/start/selected/burn_plate.png')
+    this.load.image(
+      'start-dust-layer-near',
+      'assets/ui/start/particles/dust_layers/clean/A1.png',
+    )
+    this.load.image(
+      'start-dust-layer-mid',
+      'assets/ui/start/particles/dust_layers/clean/A2.png',
+    )
+    this.load.image(
+      'start-dust-fx-mid',
+      'assets/ui/start/particles/sprites/dust_mid_fx.png.png',
+    )
+    this.load.image(
+      'start-dust-fx-near',
+      'assets/ui/start/particles/sprites/dust_near_fx.png.png',
+    )
+    for (let i = 1; i <= 10; i += 1) {
+      const frame = i.toString().padStart(2, '0')
+      this.load.image(
+        `start-light-seq-${i}`,
+        `assets/ui/start/lights/sequence/clean/${frame}.png`,
+      )
+    }
+
+    const legacyEquipmentIcons: Record<string, string> = {
+      gas_mask: 'HP标志.png',
+      field_coat: 'FP标志.png',
+      service_rifle: 'm1917.png',
+      trench_club: 'M1917图标.png',
+      supply_bag: '手雷图标.png',
+      first_aid: '香烟物品.png',
+      ammo_crate: 'm1917.png',
+      ration_can: '香烟物品.png',
+      bandage_roll: 'Vitality标志.png',
+      wire_pliers: 'M1917图标.png',
+    }
+    for (const [id, fileName] of Object.entries(legacyEquipmentIcons)) {
+      this.load.image(`eq-item-${id}`, `assets/ui/equipment/items/${fileName}`)
+    }
+
+    // Player sequence sheet provided by user: 320x320 -> 6x4 frames of 50x80.
+    this.load.spritesheet('player', 'assets/art/characters/player/player_sheet.png', {
+      frameWidth: 50,
+      frameHeight: 80,
+      endFrame: 23,
+    })
+    this.load.spritesheet('player-shoot', 'assets/art/characters/player/player_shoot_sheet.png', {
+      frameWidth: 96,
+      frameHeight: 80,
+      endFrame: 5,
+    })
+    this.load.spritesheet('player-pistol-idle', 'assets/art/characters/player/player_pistol_idle_sheet.png', {
+      frameWidth: 128,
+      frameHeight: 80,
+      endFrame: 5,
+    })
+    this.load.spritesheet('player-pistol-reload', 'assets/art/characters/player/player_pistol_reload_sheet.png', {
+      frameWidth: 128,
+      frameHeight: 80,
+      endFrame: 5,
+    })
+    this.load.spritesheet('player-rifle-shoot', 'assets/art/characters/player/player_rifle_sheet.png', {
+      frameWidth: 128,
+      frameHeight: 80,
+      endFrame: 5,
+    })
+    this.load.spritesheet('player-rifle-idle', 'assets/art/characters/player/player_rifle_idle_sheet.png', {
+      frameWidth: 128,
+      frameHeight: 80,
+      endFrame: 5,
+    })
+    this.load.spritesheet('player-rifle-reload', 'assets/art/characters/player/player_rifle_reload_sheet.png', {
+      frameWidth: 128,
+      frameHeight: 80,
+      endFrame: 5,
+    })
+    this.load.spritesheet('player-grenade-throw', 'assets/art/characters/player/player_grenade_throw_sheet.png', {
+      frameWidth: 128,
+      frameHeight: 80,
+      endFrame: 5,
+    })
+    this.load.spritesheet('player-grenade-idle', 'assets/art/characters/player/player_grenade_idle_sheet.png', {
+      frameWidth: 128,
+      frameHeight: 80,
+      endFrame: 5,
+    })
+    this.load.spritesheet('grenade-projectile', 'assets/fx/grenade/grenade_projectile_sheet.png', {
+      frameWidth: 64,
+      frameHeight: 48,
+      endFrame: 5,
+    })
+    this.load.spritesheet('grenade-explosion', 'assets/fx/grenade/grenade_explosion_sheet.png', {
+      frameWidth: 176,
+      frameHeight: 112,
+      endFrame: 5,
+    })
+    this.load.image('pistol-bullet', 'assets/fx/pistol/pistol_bullet.png')
+    this.load.image('rifle-bullet', 'assets/fx/rifle/rifle_bullet.png')
+    this.load.spritesheet('pistol-wall-impact', 'assets/fx/pistol/pistol_wall_impact_sheet.png', {
+      frameWidth: 80,
+      frameHeight: 64,
+      endFrame: 4,
+    })
+    this.load.spritesheet('enemy-slime', 'assets/art/characters/enemies/slime/slime_sheet.png', {
+      frameWidth: 64,
+      frameHeight: 48,
+      endFrame: 7,
+    })
   }
 
   create(): void {
     this.registry.set('saveData', loadSaveData())
 
+    // Force nearest filtering so pixel edges stay crisp on zoom/scale.
+    this.textures.get('tiles32').setFilter(Phaser.Textures.FilterMode.NEAREST)
+    if (this.textures.exists('bg-main')) {
+      this.textures.get('bg-main').setFilter(Phaser.Textures.FilterMode.NEAREST)
+    }
+    if (this.textures.exists('start-btn-burn-plate')) {
+      this.textures.get('start-btn-burn-plate').setFilter(Phaser.Textures.FilterMode.NEAREST)
+    }
+    if (this.textures.exists('start-desk-base')) {
+      this.textures.get('start-desk-base').setFilter(Phaser.Textures.FilterMode.NEAREST)
+    }
+    if (this.textures.exists('start-prop-lamp')) {
+      this.textures.get('start-prop-lamp').setFilter(Phaser.Textures.FilterMode.NEAREST)
+    }
+    if (this.textures.exists('start-prop-cup')) {
+      this.textures.get('start-prop-cup').setFilter(Phaser.Textures.FilterMode.NEAREST)
+    }
+    if (this.textures.exists('start-prop-compass')) {
+      this.textures.get('start-prop-compass').setFilter(Phaser.Textures.FilterMode.NEAREST)
+    }
+    if (this.textures.exists('start-map-mask-source')) {
+      this.textures.get('start-map-mask-source').setFilter(Phaser.Textures.FilterMode.NEAREST)
+    }
+    if (this.textures.exists('start-title-overlay')) {
+      this.textures.get('start-title-overlay').setFilter(Phaser.Textures.FilterMode.NEAREST)
+    }
+
     const g = this.add.graphics()
 
-    g.fillStyle(0x7dd3fc, 1)
-    g.fillRect(0, 0, 16, 24)
-    g.lineStyle(1, 0xe2f2ff, 0.9)
-    g.strokeRect(0, 0, 16, 24)
-    g.generateTexture('player', 16, 24)
-    g.clear()
+    if (this.textures.exists('player')) {
+      this.textures.get('player').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      if (this.textures.exists('player-shoot')) {
+        this.textures.get('player-shoot').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      }
+      if (this.textures.exists('player-pistol-idle')) {
+        this.textures.get('player-pistol-idle').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      }
+      if (this.textures.exists('player-pistol-reload')) {
+        this.textures.get('player-pistol-reload').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      }
+      if (this.textures.exists('player-rifle-shoot')) {
+        this.textures.get('player-rifle-shoot').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      }
+      if (this.textures.exists('player-rifle-idle')) {
+        this.textures.get('player-rifle-idle').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      }
+      if (this.textures.exists('player-rifle-reload')) {
+        this.textures.get('player-rifle-reload').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      }
+      if (this.textures.exists('player-grenade-throw')) {
+        this.textures.get('player-grenade-throw').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      }
+      if (this.textures.exists('player-grenade-idle')) {
+        this.textures.get('player-grenade-idle').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      }
+      this.createPlayerAnimations()
+    } else {
+      // Fallback: keep legacy placeholder if sprite-sheet fails to load.
+      g.fillStyle(0x7dd3fc, 1)
+      g.fillRect(0, 0, 16, 24)
+      g.lineStyle(1, 0xe2f2ff, 0.9)
+      g.strokeRect(0, 0, 16, 24)
+      g.generateTexture('player', 16, 24)
+      g.clear()
+    }
 
-    g.fillStyle(0x86efac, 1)
-    g.fillRect(0, 2, 16, 12)
-    g.fillStyle(0x111827, 1)
-    g.fillRect(4, 6, 2, 2)
-    g.fillRect(10, 6, 2, 2)
-    g.generateTexture('enemy-slime', 16, 16)
+    if (this.textures.exists('enemy-slime')) {
+      this.textures.get('enemy-slime').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      this.createEnemyAnimations()
+    } else {
+      g.fillStyle(0x86efac, 1)
+      g.fillRect(0, 2, 16, 12)
+      g.fillStyle(0x111827, 1)
+      g.fillRect(4, 6, 2, 2)
+      g.fillRect(10, 6, 2, 2)
+      g.generateTexture('enemy-slime', 16, 16)
+    }
     g.destroy()
 
+    if (this.textures.exists('pistol-bullet')) {
+      this.textures.get('pistol-bullet').setFilter(Phaser.Textures.FilterMode.NEAREST)
+    }
+    if (this.textures.exists('rifle-bullet')) {
+      this.textures.get('rifle-bullet').setFilter(Phaser.Textures.FilterMode.NEAREST)
+    }
+    if (this.textures.exists('pistol-wall-impact')) {
+      this.textures.get('pistol-wall-impact').setFilter(Phaser.Textures.FilterMode.NEAREST)
+    }
+    this.createGrenadeFxAnimations()
+
     this.scene.start('StartScene')
+  }
+
+  private createPlayerAnimations(): void {
+    if (!this.anims.exists('player-idle')) {
+      this.anims.create({
+        key: 'player-idle',
+        frames: this.anims.generateFrameNumbers('player', { start: 0, end: 5 }),
+        frameRate: 1000 / 320,
+        repeat: -1,
+      })
+    }
+
+    if (!this.anims.exists('player-run')) {
+      this.anims.create({
+        key: 'player-run',
+        frames: this.anims.generateFrameNumbers('player', { start: 6, end: 11 }),
+        frameRate: 12,
+        repeat: -1,
+      })
+    }
+
+    if (!this.anims.exists('player-dodge')) {
+      this.anims.create({
+        key: 'player-dodge',
+        frames: [
+          { key: 'player', frame: 12, duration: 130 },
+          { key: 'player', frame: 13, duration: 130 },
+          { key: 'player', frame: 14, duration: 130 },
+          { key: 'player', frame: 15, duration: 200 },
+          { key: 'player', frame: 16, duration: 130 },
+          { key: 'player', frame: 17, duration: 130 },
+        ],
+        frameRate: 10,
+        repeat: 0,
+      })
+    }
+
+    if (!this.anims.exists('player-jump')) {
+      this.anims.create({
+        key: 'player-jump',
+        frames: this.anims.generateFrameNumbers('player', { start: 18, end: 23 }),
+        frameRate: 1000 / 220,
+        repeat: -1,
+      })
+    }
+
+    if (this.textures.exists('player-shoot') && !this.anims.exists('player-shoot')) {
+      this.anims.create({
+        key: 'player-shoot',
+        frames: this.anims.generateFrameNumbers('player-shoot', { start: 0, end: 5 }),
+        frameRate: 14,
+        repeat: 0,
+      })
+    }
+
+    if (this.textures.exists('player-pistol-idle') && !this.anims.exists('player-pistol-equip')) {
+      this.anims.create({
+        key: 'player-pistol-equip',
+        frames: this.anims.generateFrameNumbers('player-pistol-idle', { start: 0, end: 5 }),
+        frameRate: 12,
+        repeat: 0,
+      })
+    }
+
+    if (this.textures.exists('player-pistol-idle') && !this.anims.exists('player-pistol-ready')) {
+      this.anims.create({
+        key: 'player-pistol-ready',
+        frames: this.anims.generateFrameNumbers('player-pistol-idle', { start: 5, end: 5 }),
+        frameRate: 1,
+        repeat: -1,
+      })
+    }
+
+    if (this.textures.exists('player-pistol-reload') && !this.anims.exists('player-pistol-reload')) {
+      this.anims.create({
+        key: 'player-pistol-reload',
+        frames: this.anims.generateFrameNumbers('player-pistol-reload', { start: 0, end: 5 }),
+        frameRate: 10,
+        repeat: 0,
+      })
+    }
+
+    if (this.textures.exists('player-rifle-shoot') && !this.anims.exists('player-rifle-shoot')) {
+      this.anims.create({
+        key: 'player-rifle-shoot',
+        frames: this.anims.generateFrameNumbers('player-rifle-shoot', { start: 0, end: 5 }),
+        frameRate: 14,
+        repeat: 0,
+      })
+    }
+
+    if (this.textures.exists('player-rifle-idle') && !this.anims.exists('player-rifle-equip')) {
+      this.anims.create({
+        key: 'player-rifle-equip',
+        frames: this.anims.generateFrameNumbers('player-rifle-idle', { start: 0, end: 5 }),
+        frameRate: 12,
+        repeat: 0,
+      })
+    }
+
+    if (this.textures.exists('player-rifle-idle') && !this.anims.exists('player-rifle-ready')) {
+      this.anims.create({
+        key: 'player-rifle-ready',
+        frames: this.anims.generateFrameNumbers('player-rifle-idle', { start: 5, end: 5 }),
+        frameRate: 1,
+        repeat: -1,
+      })
+    }
+
+    if (this.textures.exists('player-rifle-reload') && !this.anims.exists('player-rifle-reload')) {
+      this.anims.create({
+        key: 'player-rifle-reload',
+        frames: this.anims.generateFrameNumbers('player-rifle-reload', { start: 0, end: 5 }),
+        frameRate: 10,
+        repeat: 0,
+      })
+    }
+
+    if (this.textures.exists('player-grenade-throw') && !this.anims.exists('player-grenade-throw')) {
+      this.anims.create({
+        key: 'player-grenade-throw',
+        frames: this.anims.generateFrameNumbers('player-grenade-throw', { start: 0, end: 5 }),
+        frameRate: 13,
+        repeat: 0,
+      })
+    }
+
+    if (this.textures.exists('player-grenade-idle') && !this.anims.exists('player-grenade-equip')) {
+      this.anims.create({
+        key: 'player-grenade-equip',
+        frames: this.anims.generateFrameNumbers('player-grenade-idle', { start: 0, end: 5 }),
+        frameRate: 12,
+        repeat: 0,
+      })
+    }
+
+    if (this.textures.exists('player-grenade-idle') && !this.anims.exists('player-grenade-ready')) {
+      this.anims.create({
+        key: 'player-grenade-ready',
+        frames: this.anims.generateFrameNumbers('player-grenade-idle', { start: 5, end: 5 }),
+        frameRate: 1,
+        repeat: -1,
+      })
+    }
+  }
+
+  private createEnemyAnimations(): void {
+    if (!this.anims.exists('enemy-slime-idle')) {
+      this.anims.create({
+        key: 'enemy-slime-idle',
+        frames: this.anims.generateFrameNumbers('enemy-slime', { frames: [0, 1, 6, 1] }),
+        frameRate: 4,
+        repeat: -1,
+      })
+    }
+
+    if (!this.anims.exists('enemy-slime-walk')) {
+      this.anims.create({
+        key: 'enemy-slime-walk',
+        frames: this.anims.generateFrameNumbers('enemy-slime', { start: 0, end: 7 }),
+        frameRate: 7,
+        repeat: -1,
+      })
+    }
+  }
+
+  private createGrenadeFxAnimations(): void {
+    if (this.textures.exists('grenade-projectile')) {
+      this.textures.get('grenade-projectile').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      if (!this.anims.exists('grenade-projectile-arc')) {
+        this.anims.create({
+          key: 'grenade-projectile-arc',
+          frames: this.anims.generateFrameNumbers('grenade-projectile', { start: 0, end: 5 }),
+          frameRate: 12,
+          repeat: -1,
+        })
+      }
+    }
+
+    if (this.textures.exists('grenade-explosion')) {
+      this.textures.get('grenade-explosion').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      if (!this.anims.exists('grenade-explosion')) {
+        this.anims.create({
+          key: 'grenade-explosion',
+          frames: this.anims.generateFrameNumbers('grenade-explosion', { start: 0, end: 5 }),
+          frameRate: 13,
+          repeat: 0,
+        })
+      }
+    }
+
+    if (this.textures.exists('pistol-wall-impact')) {
+      this.textures.get('pistol-wall-impact').setFilter(Phaser.Textures.FilterMode.NEAREST)
+      if (!this.anims.exists('pistol-wall-impact')) {
+        this.anims.create({
+          key: 'pistol-wall-impact',
+          frames: this.anims.generateFrameNumbers('pistol-wall-impact', { start: 0, end: 4 }),
+          frameRate: 16,
+          repeat: 0,
+        })
+      }
+    }
   }
 }

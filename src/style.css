@@ -13,6 +13,11 @@ body,
   background: #090b10;
 }
 
+#app {
+  position: relative;
+  isolation: isolate;
+}
+
 body {
   font-family: Consolas, "Cascadia Mono", monospace;
 }
@@ -22,4 +27,18 @@ canvas {
   margin: 0 auto;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+
+canvas.phaser-game-canvas {
+  position: relative;
+  z-index: 1;
+}
+
+canvas.three-ui-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  image-rendering: auto;
 }

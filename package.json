@@ -9,10 +9,12 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/three": "^0.183.1",
     "typescript": "~5.8.3",
     "vite": "^7.1.7"
   },
   "dependencies": {
-    "phaser": "^3.90.0"
+    "phaser": "^3.90.0",
+    "three": "^0.183.2"
   }
 }

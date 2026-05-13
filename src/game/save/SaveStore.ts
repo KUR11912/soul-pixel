@@ -159,14 +159,14 @@ export function createDefaultSave(): SaveData {
       lastSaveAt: now,
     },
     map: {
-      mapId: 'level01',
-      currentRoom: 'level01:0',
-      visited: ['level01:0'],
+      mapId: 'level02',
+      currentRoom: 'level02:0',
+      visited: ['level02:0'],
     },
     runtime: {
-      mapId: 'level01',
-      x: 96,
-      y: 160,
+      mapId: 'level02',
+      x: 180,
+      y: 744,
       hp: 5,
       maxHp: 5,
     },
@@ -246,7 +246,7 @@ function normalizeSave(input: unknown): SaveData {
   const currentRoom =
     typeof src.map?.currentRoom === 'string' && src.map.currentRoom.length > 0
       ? src.map.currentRoom
-      : 'level01:0'
+      : 'level02:0'
 
   const normalized: SaveData = {
     version: clampNum(src.version, 1, 1),
@@ -265,7 +265,7 @@ function normalizeSave(input: unknown): SaveData {
     },
     map: {
       mapId:
-        typeof src.map?.mapId === 'string' && src.map.mapId.length > 0 ? src.map.mapId : 'level01',
+        typeof src.map?.mapId === 'string' && src.map.mapId.length > 0 ? src.map.mapId : 'level02',
       currentRoom,
       visited: visited.length > 0 ? Array.from(new Set(visited)) : [currentRoom],
     },
@@ -273,9 +273,9 @@ function normalizeSave(input: unknown): SaveData {
       mapId:
         typeof src.runtime?.mapId === 'string' && src.runtime.mapId.length > 0
           ? src.runtime.mapId
-          : 'level01',
-      x: clampNum(src.runtime?.x, 96),
-      y: clampNum(src.runtime?.y, 160),
+          : 'level02',
+      x: clampNum(src.runtime?.x, 180),
+      y: clampNum(src.runtime?.y, 744),
       hp: clampNum(src.runtime?.hp, 5, 0),
       maxHp: clampNum(src.runtime?.maxHp, 5, 1),
     },

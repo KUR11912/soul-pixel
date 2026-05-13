@@ -5,9 +5,19 @@ export class Slime extends EnemyBase {
   private readonly moveSpeed = 58
   private readonly chaseRange = 320
   private readonly stopRange = 18
+  private currentAnimKey = ''
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'enemy-slime', 3)
+    this.y -= 16
+
+    const body = this.body as Phaser.Physics.Arcade.Body
+    body.setSize(34, 30)
+    body.setOffset(15, 14)
+
+    if (scene.anims.exists('enemy-slime-idle')) {
+      this.playAnim('enemy-slime-idle')
+    }
   }
 
   updateAI(player: Player): void {
@@ -33,5 +43,12 @@ export class Slime extends EnemyBase {
 
     if (body.velocity.x > 0) this.setFlipX(false)
     if (body.velocity.x < 0) this.setFlipX(true)
+    this.playAnim(Math.abs(body.velocity.x) > 1 ? 'enemy-slime-walk' : 'enemy-slime-idle')
+  }
+
+  private playAnim(key: string): void {
+    if (!this.scene.anims.exists(key) || this.currentAnimKey === key) return
+    this.currentAnimKey = key
+    this.anims.play(key, true)
   }
 }

@@ -62,11 +62,39 @@ const RIGHT_PAGE = {
   h: 730,
 }
 
+const TAB_HIT_R1: Rect = { x: 1548, y: 260, w: 24, h: 120 }
+const TAB_HIT_R2: Rect = { x: 1547, y: 421, w: 25, h: 121 }
+const TAB_HIT_R3: Rect = { x: 1548, y: 583, w: 23, h: 120 }
+const TAB_HIT_R4: Rect = { x: 1548, y: 713, w: 23, h: 120 }
+
 const TAB_RECTS: Record<FilesCategory, Rect> = {
-  folder: { x: 1560, y: 150, w: 40, h: 180 },
-  item: { x: 1560, y: 380, w: 40, h: 180 },
-  weapon: { x: 1560, y: 600, w: 40, h: 180 },
-  misc: { x: 1560, y: 820, w: 40, h: 180 },
+  folder: TAB_HIT_R1,
+  item: TAB_HIT_R2,
+  weapon: TAB_HIT_R3,
+  misc: TAB_HIT_R4,
+}
+
+const CATEGORY_PAGE_TEXTURE: Record<FilesCategory, string> = {
+  folder: 'files-page-folder',
+  item: 'files-page-item',
+  weapon: 'files-page-weapon',
+  misc: 'files-page-misc',
+}
+
+const FILES_UI_ASSETS: Record<string, string> = {
+  'files-bg-full': 'assets/ui/files/files_bg_full.png',
+  'files-panel-main': 'assets/ui/files/files_panel_main.png',
+  'files-frame-outer': 'assets/ui/files/files_frame_outer.png',
+  'files-title-text': 'assets/ui/files/files_text_title.png',
+  'files-btn-active': 'assets/ui/files/files_button_active.png',
+  'files-btn-idle': 'assets/ui/files/files_button_idle.png',
+  'files-btn-text-equip': 'assets/ui/files/files_text_equip.png',
+  'files-btn-text-map': 'assets/ui/files/files_text_map.png',
+  'files-btn-text-files': 'assets/ui/files/files_text_files.png',
+  'files-page-folder': 'assets/ui/files/pages/Folder.png',
+  'files-page-item': 'assets/ui/files/pages/ITEM.png',
+  'files-page-weapon': 'assets/ui/files/pages/WEAPON.png',
+  'files-page-misc': 'assets/ui/files/pages/Jouanal.png',
 }
 
 export class ArchiveScene extends Phaser.Scene {
@@ -79,6 +107,7 @@ export class ArchiveScene extends Phaser.Scene {
   private hoveredCategory: FilesCategory | null = null
 
   private overlay!: Phaser.GameObjects.Graphics
+  private panelPageImage!: Phaser.GameObjects.Image
   private listText!: Phaser.GameObjects.Text
   private pageTitleText!: Phaser.GameObjects.Text
   private pageSubtitleText!: Phaser.GameObjects.Text
@@ -92,6 +121,14 @@ export class ArchiveScene extends Phaser.Scene {
     super('ArchiveScene')
   }
 
+  preload(): void {
+    for (const [key, path] of Object.entries(FILES_UI_ASSETS)) {
+      if (!this.textures.exists(key)) {
+        this.load.image(key, path)
+      }
+    }
+  }
+
   create(): void {
     this.setupLayout()
 
@@ -101,7 +138,13 @@ export class ArchiveScene extends Phaser.Scene {
       .setDepth(1)
 
     this.addUiImage('files-bg-full', FILES_LAYOUT.bgOffsetX, FILES_LAYOUT.bgOffsetY, 6)
-    this.addUiImage('files-panel-main', FILES_LAYOUT.panelOffsetX, FILES_LAYOUT.panelOffsetY, 8)
+    this.panelPageImage = this.addUiImage(
+      'files-panel-main',
+      FILES_LAYOUT.panelOffsetX,
+      FILES_LAYOUT.panelOffsetY,
+      8,
+    )
+    this.fitPanelPageImage()
     this.addUiImage('files-frame-outer', 0, 0, 10)
     this.addUiImage('files-title-text', FILES_LAYOUT.titleOffsetX, FILES_LAYOUT.titleOffsetY, 30)
 
@@ -480,6 +523,23 @@ export class ArchiveScene extends Phaser.Scene {
     return all.filter((d) => d.category === this.selectedCategory)
   }
 
+  private fitPanelPageImage(): void {
+    this.panelPageImage.setPosition(this.panelCenter.x, this.panelCenter.y)
+    this.panelPageImage.setDisplaySize(
+      FILES_LAYOUT.panelW * this.uiScale,
+      FILES_LAYOUT.panelH * this.uiScale,
+    )
+  }
+
+  private updateCategoryPanelImage(): void {
+    const targetTexture = CATEGORY_PAGE_TEXTURE[this.selectedCategory]
+    const textureKey = this.textures.exists(targetTexture) ? targetTexture : 'files-panel-main'
+    if (this.panelPageImage.texture.key !== textureKey) {
+      this.panelPageImage.setTexture(textureKey)
+    }
+    this.fitPanelPageImage()
+  }
+
   private refresh(): void {
     const save = readSaveFromRegistry(this)
     const allDocs = this.buildDocs(save)
@@ -492,6 +552,7 @@ export class ArchiveScene extends Phaser.Scene {
     }
 
     const selectedDoc = visibleDocs.find((d) => d.id === this.selectedDocId) ?? null
+    this.updateCategoryPanelImage()
     this.drawOverlay(visibleDocs, selectedDoc)
     this.drawLeftList(visibleDocs, selectedDoc)
     this.drawRightPage(selectedDoc)

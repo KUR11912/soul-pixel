@@ -10,6 +10,43 @@ export type WasdKeys = {
   D: Phaser.Input.Keyboard.Key
 }
 
+export type PlayerShot = {
+  kind: 'shot'
+  x: number
+  y: number
+  dir: 1 | -1
+  range: number
+  width: number
+  lifeMs: number
+  damage: number
+  weapon: PlayerWeapon
+}
+
+export type PlayerGrenadeThrow = {
+  kind: 'grenade'
+  x: number
+  y: number
+  dir: 1 | -1
+  range: number
+  radius: number
+  damage: number
+  flightMs: number
+  weapon: 'grenade'
+}
+
+export type PlayerAttackAction = PlayerShot | PlayerGrenadeThrow
+
+export type PlayerWeapon = 'pistol' | 'rifle' | 'grenade'
+
+export type PlayerAmmoState = {
+  weapon: PlayerWeapon | null
+  pistolAmmo: number
+  pistolMagazineSize: number
+  rifleAmmo: number
+  rifleMagazineSize: number
+  reloadingWeapon: 'pistol' | 'rifle' | null
+}
+
 export class Player extends Phaser.Physics.Arcade.Sprite {
   private readonly moveSpeed = 210
   private readonly jumpVelocity = -460
@@ -41,11 +78,58 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private readonly maxHp = 5
   private hp = this.maxHp
   private facing: 1 | -1 = 1
+  private equippedWeapon: PlayerWeapon | null = null
+  private equippingUntil = -99999
+  private readonly equipAnimMs = 500
   private nextAttackAt = 0
   private readonly attackCooldownMs = 260
   private readonly attackLifeMs = 100
+  private nextShootAt = 0
+  private shootingUntil = -99999
+  private readonly shootCooldownMs = 480
+  private readonly shootAnimMs = 360
+  private readonly shootRangePx = 260
+  private readonly shootWidthPx = 16
+  private readonly pistolMagazineSize = 6
+  private pistolAmmo = this.pistolMagazineSize
+  private nextRifleShootAt = 0
+  private readonly rifleShootCooldownMs = 720
+  private readonly rifleShootAnimMs = 390
+  private readonly rifleShootRangePx = 420
+  private readonly rifleShootWidthPx = 14
+  private readonly rifleMagazineSize = 5
+  private rifleAmmo = this.rifleMagazineSize
+  private readonly pistolReloadAnimMs = 620
+  private readonly rifleReloadAnimMs = 620
+  private reloadingWeapon: 'pistol' | 'rifle' | null = null
+  private reloadingUntil = -99999
+  private nextGrenadeThrowAt = 0
+  private readonly grenadeThrowCooldownMs = 1150
+  private readonly grenadeThrowAnimMs = 520
+  private readonly grenadeThrowRangePx = 150
+  private readonly grenadeBlastRadiusPx = 62
+  private readonly grenadeFlightMs = 520
   private readonly iFrames: IFrameSystem
   private deadState = false
+
+  private readonly dodgeDistancePx = 168
+  private readonly dodgeDurationMs = 850
+  private readonly dodgeSpeed = Math.round((this.dodgeDistancePx / this.dodgeDurationMs) * 1000)
+  private readonly dodgeCooldownMs = 700
+  private readonly dodgeIFrameMs = 850
+  private readonly dodgeTrailIntervalMs = 40
+  private dodgeUntil = -99999
+  private nextDodgeAt = 0
+  private dodgeDir: 1 | -1 = 1
+  private nextTrailAt = 0
+  private currentAnimKey = ''
+  private bodyHitW = 19
+  private bodyHitH = 34
+  private normalBodyOffsetX = 16
+  private normalBodyOffsetY = 42
+  private shootBodyOffsetX = 38
+  private rifleShootBodyOffsetX = 54
+  private weaponIdleBodyOffsetX = 54
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'player')
@@ -59,10 +143,29 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(5)
 
     const body = this.body as Phaser.Physics.Arcade.Body
-    body.setSize(12, 22)
-    body.setOffset(2, 2)
+    // Keep collision compact around lower body and adapt to sprite-frame size.
+    const frameW = this.frame?.realWidth ?? 50
+    const frameH = this.frame?.realHeight ?? 80
+    const hitW = Math.max(12, Math.round(frameW * 0.38))
+    const hitH = Math.max(28, Math.round(frameH * 0.42))
+    const offsetX = Math.round((frameW - hitW) * 0.5)
+    const offsetY = Math.round(frameH - hitH - 4)
+    this.bodyHitW = hitW
+    this.bodyHitH = hitH
+    this.normalBodyOffsetX = offsetX
+    this.normalBodyOffsetY = offsetY
+    this.shootBodyOffsetX = Math.round((96 - hitW) * 0.5)
+    this.rifleShootBodyOffsetX = Math.round((128 - hitW) * 0.5)
+    this.weaponIdleBodyOffsetX = Math.round((128 - hitW) * 0.5)
+    body.setSize(hitW, hitH)
+    body.setOffset(offsetX, offsetY)
     body.setGravityY(this.gravityY)
     body.setMaxVelocity(260, this.maxFallSpeed)
+
+    if (scene.anims.exists('player-idle')) {
+      this.playAnim('player-idle')
+    }
+    this.syncAmmoState()
   }
 
   getHp(): number {
@@ -81,24 +184,59 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return !this.deadState && !this.iFrames.isActive()
   }
 
+  isDodging(): boolean {
+    return !this.deadState && this.scene.time.now < this.dodgeUntil
+  }
+
+  getAmmoState(): PlayerAmmoState {
+    return {
+      weapon: this.equippedWeapon,
+      pistolAmmo: this.pistolAmmo,
+      pistolMagazineSize: this.pistolMagazineSize,
+      rifleAmmo: this.rifleAmmo,
+      rifleMagazineSize: this.rifleMagazineSize,
+      reloadingWeapon: this.reloadingWeapon,
+    }
+  }
+
   update(
     cursors: Phaser.Types.Input.Keyboard.CursorKeys,
     wasd: WasdKeys,
     jumpKey: Phaser.Input.Keyboard.Key,
+    dodgeKey: Phaser.Input.Keyboard.Key,
     deltaMs: number,
   ): void {
     if (this.deadState) {
       this.setVelocityX(0)
+      this.anims.stop()
       return
     }
 
     const body = this.body as Phaser.Physics.Arcade.Body
     const now = this.scene.time.now
     const dt = deltaMs / 1000
+    this.finishReloadIfNeeded(now)
 
     const left = cursors.left.isDown || wasd.A.isDown
     const right = cursors.right.isDown || wasd.D.isDown
     const moveX = (left ? -1 : 0) + (right ? 1 : 0)
+    const dodgePressed = Phaser.Input.Keyboard.JustDown(dodgeKey)
+
+    if (dodgePressed && now >= this.nextDodgeAt && now >= this.dodgeUntil) {
+      const dashDir = moveX !== 0 ? (moveX > 0 ? 1 : -1) : this.facing
+      this.startDodge(dashDir, now)
+    }
+
+    if (now < this.dodgeUntil) {
+      this.setVelocityX(this.dodgeDir * this.dodgeSpeed)
+      this.setFlipX(this.dodgeDir < 0)
+      this.facing = this.dodgeDir
+      this.emitDodgeTrail(now)
+      if (this.currentAnimKey !== 'player-dodge') {
+        this.playAnim('player-dodge')
+      }
+      return
+    }
 
     const onGround = body.blocked.down || body.touching.down
     if (onGround) {
@@ -109,7 +247,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.wallSide = 0
     }
 
-    // 墙体判定加入 wasTouching，提升“贴边”时的吸附命中率
     const touchingLeft = body.blocked.left || body.touching.left || body.wasTouching.left
     const touchingRight = body.blocked.right || body.touching.right || body.wasTouching.right
     const touchingWall = !onGround && (touchingLeft || touchingRight)
@@ -164,7 +301,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.lastJumpPressedAt = -99999
       this.lastGroundedAt = -99999
 
-      // 蹭墙跳后给回 1 次空中跳，手感更稳
       this.airJumpsLeft = this.maxAirJumps
     } else if (jumpPressed && !onGround && this.airJumpsLeft > 0) {
       this.airJumpsLeft -= 1
@@ -193,6 +329,38 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.setVelocityY(Math.min(this.maxFallSpeed, boosted))
       }
     }
+
+    this.updateAnimationState(moveX, onGround)
+  }
+
+  private startDodge(dir: 1 | -1, now: number): void {
+    this.dodgeDir = dir
+    this.dodgeUntil = now + this.dodgeDurationMs
+    this.nextDodgeAt = now + this.dodgeCooldownMs
+    this.nextTrailAt = now
+    this.iFrames.start(this.dodgeIFrameMs)
+  }
+
+  private emitDodgeTrail(now: number): void {
+    if (now < this.nextTrailAt) return
+    this.nextTrailAt = now + this.dodgeTrailIntervalMs
+
+    const frame = this.frame?.name ?? 0
+    const ghost = this.scene.add
+      .sprite(this.x, this.y, 'player', frame)
+      .setDepth(this.depth - 1)
+      .setAlpha(0.35)
+      .setTint(0xbfe8ff)
+      .setFlipX(this.flipX)
+
+    ghost.setScale(this.scaleX, this.scaleY)
+
+    this.scene.tweens.add({
+      targets: ghost,
+      alpha: 0,
+      duration: 180,
+      onComplete: () => ghost.destroy(),
+    })
   }
 
   tryAttack(): Hitbox | null {
@@ -209,6 +377,127 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       20,
       this.attackLifeMs,
     )
+  }
+
+  equipPistol(): void {
+    this.finishReloadIfNeeded()
+    if (this.deadState || this.isDodging() || this.isReloading()) return
+    this.equippedWeapon = 'pistol'
+    this.equippingUntil = this.scene.time.now + this.equipAnimMs
+    this.playAnim('player-pistol-equip', true)
+    this.syncAmmoState()
+  }
+
+  equipRifle(): void {
+    this.finishReloadIfNeeded()
+    if (this.deadState || this.isDodging() || this.isReloading()) return
+    this.equippedWeapon = 'rifle'
+    this.equippingUntil = this.scene.time.now + this.equipAnimMs
+    this.playAnim('player-rifle-equip', true)
+    this.syncAmmoState()
+  }
+
+  equipGrenade(): void {
+    this.finishReloadIfNeeded()
+    if (this.deadState || this.isDodging() || this.isReloading()) return
+    this.equippedWeapon = 'grenade'
+    this.equippingUntil = this.scene.time.now + this.equipAnimMs
+    this.playAnim('player-grenade-equip', true)
+    this.syncAmmoState()
+  }
+
+  tryShootEquipped(): PlayerAttackAction | null {
+    this.finishReloadIfNeeded()
+    if (this.isReloading()) return null
+    if (this.equippedWeapon === 'pistol') return this.tryShoot()
+    if (this.equippedWeapon === 'rifle') return this.tryRifleShoot()
+    if (this.equippedWeapon === 'grenade') return this.tryGrenadeThrow()
+    return null
+  }
+
+  tryShoot(): PlayerShot | null {
+    if (this.deadState || this.isDodging()) return null
+
+    const now = this.scene.time.now
+    this.finishReloadIfNeeded(now)
+    if (this.isReloading()) return null
+    if (now < this.nextShootAt) return null
+    if (this.pistolAmmo <= 0) {
+      this.startReload('pistol', now)
+      return null
+    }
+
+    this.nextShootAt = now + this.shootCooldownMs
+    this.shootingUntil = now + this.shootAnimMs
+    this.pistolAmmo -= 1
+    this.playAnim('player-shoot', true)
+    this.syncAmmoState()
+
+    return {
+      kind: 'shot',
+      x: this.x + this.facing * 34,
+      y: this.y - 2,
+      dir: this.facing,
+      range: this.shootRangePx,
+      width: this.shootWidthPx,
+      lifeMs: 70,
+      damage: 1,
+      weapon: 'pistol',
+    }
+  }
+
+  tryRifleShoot(): PlayerShot | null {
+    if (this.deadState || this.isDodging()) return null
+
+    const now = this.scene.time.now
+    this.finishReloadIfNeeded(now)
+    if (this.isReloading()) return null
+    if (now < this.nextRifleShootAt) return null
+    if (this.rifleAmmo <= 0) {
+      this.startReload('rifle', now)
+      return null
+    }
+
+    this.nextRifleShootAt = now + this.rifleShootCooldownMs
+    this.shootingUntil = now + this.rifleShootAnimMs
+    this.rifleAmmo -= 1
+    this.playAnim('player-rifle-shoot', true)
+    this.syncAmmoState()
+
+    return {
+      kind: 'shot',
+      x: this.x + this.facing * 46,
+      y: this.y - 2,
+      dir: this.facing,
+      range: this.rifleShootRangePx,
+      width: this.rifleShootWidthPx,
+      lifeMs: 90,
+      damage: 2,
+      weapon: 'rifle',
+    }
+  }
+
+  tryGrenadeThrow(): PlayerGrenadeThrow | null {
+    if (this.deadState || this.isDodging()) return null
+
+    const now = this.scene.time.now
+    if (now < this.nextGrenadeThrowAt) return null
+
+    this.nextGrenadeThrowAt = now + this.grenadeThrowCooldownMs
+    this.shootingUntil = now + this.grenadeThrowAnimMs
+    this.playAnim('player-grenade-throw', true)
+
+    return {
+      kind: 'grenade',
+      x: this.x + this.facing * 24,
+      y: this.y - 22,
+      dir: this.facing,
+      range: this.grenadeThrowRangePx,
+      radius: this.grenadeBlastRadiusPx,
+      damage: 3,
+      flightMs: this.grenadeFlightMs,
+      weapon: 'grenade',
+    }
   }
 
   takeDamage(amount: number, sourceX: number): boolean {
@@ -242,5 +531,119 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.lastWallAt = -99999
     this.wallSide = 0
     this.moveLockUntil = -99999
+    this.dodgeUntil = -99999
+    this.nextDodgeAt = 0
+    this.nextTrailAt = 0
+    this.nextShootAt = 0
+    this.nextRifleShootAt = 0
+    this.nextGrenadeThrowAt = 0
+    this.shootingUntil = -99999
+    this.equippedWeapon = null
+    this.equippingUntil = -99999
+    this.pistolAmmo = this.pistolMagazineSize
+    this.rifleAmmo = this.rifleMagazineSize
+    this.reloadingWeapon = null
+    this.reloadingUntil = -99999
+    this.playAnim('player-idle')
+    this.syncAmmoState()
+  }
+
+  private updateAnimationState(moveX: number, onGround: boolean): void {
+    if (!this.anims || !this.texture) return
+
+    const now = this.scene.time.now
+    if (now < this.shootingUntil || now < this.equippingUntil || now < this.reloadingUntil) {
+      return
+    }
+
+    if (!onGround) {
+      this.playAnim('player-jump')
+      return
+    }
+
+    if (moveX !== 0) {
+      this.playAnim('player-run')
+      return
+    }
+
+    const readyAnim = this.getEquippedReadyAnim()
+    this.playAnim(readyAnim ?? 'player-idle')
+  }
+
+  private getEquippedReadyAnim(): string | null {
+    if (this.equippedWeapon === 'pistol') return 'player-pistol-ready'
+    if (this.equippedWeapon === 'rifle') return 'player-rifle-ready'
+    if (this.equippedWeapon === 'grenade') return 'player-grenade-ready'
+    return null
+  }
+
+  private playAnim(key: string, restart = false): void {
+    if (!this.scene.anims.exists(key)) return
+    if (this.currentAnimKey === key && this.anims.isPlaying && !restart) return
+    this.applyBodyOffsetForAnimation(key)
+    this.currentAnimKey = key
+    this.anims.play(key, !restart)
+  }
+
+  private applyBodyOffsetForAnimation(key: string): void {
+    const body = this.body as Phaser.Physics.Arcade.Body | null
+    if (!body) return
+
+    body.setSize(this.bodyHitW, this.bodyHitH)
+    let offsetX = this.normalBodyOffsetX
+    if (key === 'player-shoot') offsetX = this.shootBodyOffsetX
+    if (key === 'player-rifle-shoot') offsetX = this.rifleShootBodyOffsetX
+    if (
+      key === 'player-pistol-equip' ||
+      key === 'player-pistol-ready' ||
+      key === 'player-pistol-reload' ||
+      key === 'player-rifle-equip' ||
+      key === 'player-rifle-ready' ||
+      key === 'player-rifle-reload' ||
+      key === 'player-grenade-throw' ||
+      key === 'player-grenade-equip' ||
+      key === 'player-grenade-ready'
+    ) {
+      offsetX = this.weaponIdleBodyOffsetX
+    }
+    body.setOffset(offsetX, this.normalBodyOffsetY)
+  }
+
+  private isReloading(): boolean {
+    return this.reloadingWeapon !== null && this.scene.time.now < this.reloadingUntil
+  }
+
+  private startReload(weapon: 'pistol' | 'rifle', now = this.scene.time.now): void {
+    if (this.deadState || this.isDodging() || this.isReloading()) return
+
+    const duration = weapon === 'pistol' ? this.pistolReloadAnimMs : this.rifleReloadAnimMs
+    this.reloadingWeapon = weapon
+    this.reloadingUntil = now + duration
+    this.shootingUntil = this.reloadingUntil
+    if (weapon === 'pistol') {
+      this.nextShootAt = this.reloadingUntil
+      this.playAnim('player-pistol-reload', true)
+    } else {
+      this.nextRifleShootAt = this.reloadingUntil
+      this.playAnim('player-rifle-reload', true)
+    }
+    this.syncAmmoState()
+  }
+
+  private finishReloadIfNeeded(now = this.scene.time.now): void {
+    if (!this.reloadingWeapon || now < this.reloadingUntil) return
+
+    if (this.reloadingWeapon === 'pistol') {
+      this.pistolAmmo = this.pistolMagazineSize
+    } else {
+      this.rifleAmmo = this.rifleMagazineSize
+    }
+    this.reloadingWeapon = null
+    this.reloadingUntil = -99999
+    this.syncAmmoState()
+  }
+
+  private syncAmmoState(): void {
+    this.scene.registry.set('ammoState', this.getAmmoState())
   }
 }
