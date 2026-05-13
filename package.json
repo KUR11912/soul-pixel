@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:pages": "tsc && vite build --base=/soul-pixel/ && node scripts/prune-pages-dist.mjs",
     "preview": "vite preview"
   },
   "devDependencies": {

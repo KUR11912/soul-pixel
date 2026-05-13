@@ -167,7 +167,7 @@ const LEVEL01_WORLD_REFERENCE = { width: 1792, height: 640 } as const
 const LEVEL03_WORLD_REFERENCE = { width: 1792, height: 640 } as const
 
 const LEVEL01_BG_KEY = 'level01-panorama'
-const LEVEL01_BG_PATH = 'assets/debug/panoramas/level01_panorama.png'
+const LEVEL01_BG_PATH = 'assets/art/backgrounds/level01_panorama.png'
 const LEVEL01_SHOW_COLLIDER_DEBUG = false
 const LEVEL01_COLLIDER_DEBUG_COLOR = 0x22d3ee
 const LEVEL01_COLLIDER_DEBUG_ALPHA = 0.32

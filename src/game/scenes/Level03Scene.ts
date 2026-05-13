@@ -16,9 +16,9 @@ const LEVEL03_CONFIG: LevelSceneConfig = {
 }
 
 const LEVEL03_BG_KEY = 'level03-panorama'
-const LEVEL03_BG_PATH = 'assets/debug/panoramas/level03_panorama.png'
+const LEVEL03_BG_PATH = 'assets/art/backgrounds/level03_panorama.png'
 const LEVEL03_BG_FALLBACK_KEY = 'level03-panorama-fallback'
-const LEVEL03_BG_FALLBACK_PATH = 'assets/debug/panoramas/level03_new.jpg'
+const LEVEL03_BG_FALLBACK_PATH = 'assets/art/backgrounds/level03_new.png'
 const LEVEL03_LADDER_REFERENCE = { width: 2048, height: 1008 } as const
 const LEVEL03_PORTAL_REFERENCE = { width: 2016, height: 992 } as const
 

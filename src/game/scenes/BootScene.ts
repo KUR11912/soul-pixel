@@ -68,14 +68,14 @@ export class BootScene extends Phaser.Scene {
       'eq-ui-state-grenade-tabs',
       'assets/ui/equipment/anims/item_grenade_focus/tab/frame/上部标签栏_00230.png',
     )
-    for (let frame = 0; frame <= 81; frame += 1) {
+    for (let frame = 40; frame <= 81; frame += 1) {
       const padded = frame.toString().padStart(5, '0')
       this.load.image(
         `eq-ui-frame-open-${padded}`,
         `assets/ui/equipment/anims/open/body/frames/inven_${padded}.png`,
       )
     }
-    for (let frame = 65; frame <= 118; frame += 1) {
+    for (let frame = 82; frame <= 118; frame += 1) {
       const padded = frame.toString().padStart(5, '0')
       this.load.image(
         `eq-ui-frame-revolver-${padded}`,

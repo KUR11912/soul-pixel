@@ -16,7 +16,7 @@ const LEVEL02_CONFIG: LevelSceneConfig = {
 }
 
 const LEVEL02_BG_KEY = 'level02-panorama'
-const LEVEL02_BG_PATH = 'assets/debug/panoramas/level02_panorama.jpg'
+const LEVEL02_BG_PATH = 'assets/art/backgrounds/level02_panorama.jpg'
 const LEVEL02_LADDER_REFERENCE = { width: 2048, height: 1008 } as const
 const LEVEL02_PORTAL_REFERENCE = { width: 2016, height: 992 } as const
 
