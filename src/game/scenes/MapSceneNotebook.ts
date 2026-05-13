@@ -47,6 +47,19 @@ export class MapScene extends Phaser.Scene {
         'assets/ui/map/states/open_from_equipment_body.png',
       )
     }
+    for (const frame of MAP_OPEN_FRAME_INDEXES) {
+      const padded = frame.toString().padStart(5, '0')
+      const key = `map-ui-frame-open-${padded}`
+      if (!this.textures.exists(key)) {
+        this.load.image(key, `assets/ui/map/anims/open/body/frames/Map界切图3_${padded}.png`)
+      }
+    }
+    if (!this.textures.exists(MAP_OPEN_FINAL_FRAME_KEY)) {
+      this.load.image(
+        MAP_OPEN_FINAL_FRAME_KEY,
+        'assets/ui/map/anims/open/body/frames/Map界切图3_00023.png',
+      )
+    }
   }
 
   create(): void {

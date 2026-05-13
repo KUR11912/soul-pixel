@@ -1,9 +1,6 @@
 import Phaser from 'phaser'
 import { loadSaveData } from '../save/SaveStore'
 
-const MAP_OPEN_FRAME_INDEXES = Array.from({ length: 24 }, (_, index) => index)
-const MAP_OPEN_FINAL_FRAME_INDEX = 23
-
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('BootScene')
@@ -13,32 +10,6 @@ export class BootScene extends Phaser.Scene {
     this.load.image('tiles32', 'assets/art/tilesets/env_ground.png')
     this.load.image('bg-main', 'assets/art/tilesets/main_background.png')
 
-    this.load.image('eq-ui-bg', 'assets/ui/equipment/items/bg.png')
-    this.load.image(
-      'eq-ui-reference',
-      'assets/ui/equipment/items/inventory界面euqipment部分.png',
-    )
-    this.load.image('eq-ui-header-brush', 'assets/ui/equipment/items/Attributes底.png')
-    this.load.image('eq-ui-tab-selected', 'assets/ui/equipment/items/选中态标签.png')
-    this.load.image('eq-ui-tab-idle-left', 'assets/ui/equipment/items/未选中标签（左）.png')
-    this.load.image('eq-ui-tab-idle-mid', 'assets/ui/equipment/items/未选中标签（中）.png')
-    this.load.image('eq-ui-equipment-strip', 'assets/ui/equipment/items/物品选中标签底.png')
-    this.load.image('eq-ui-slot-frame', 'assets/ui/equipment/items/物品栏框.png')
-    this.load.image('eq-ui-slot-frame-selected', 'assets/ui/equipment/items/物品栏选中框.png')
-    this.load.image('eq-ui-keycap', 'assets/ui/equipment/items/普通按键底.png')
-    this.load.image('eq-ui-keycap-wide', 'assets/ui/equipment/items/长按键底.png')
-    this.load.image('eq-ui-bar-vitality', 'assets/ui/equipment/items/Vitality数值条png.png')
-    this.load.image('eq-ui-bar-endurance', 'assets/ui/equipment/items/Endurance数值条.png')
-    this.load.image('eq-ui-bar-mind', 'assets/ui/equipment/items/mind数值条.png')
-    this.load.image('eq-ui-icon-vitality', 'assets/ui/equipment/items/Vitality标志.png')
-    this.load.image('eq-ui-icon-endurance', 'assets/ui/equipment/items/Endurance标志.png')
-    this.load.image('eq-ui-icon-mind', 'assets/ui/equipment/items/Mind标志.png')
-    this.load.image('eq-ui-icon-hp', 'assets/ui/equipment/items/HP标志.png')
-    this.load.image('eq-ui-icon-fp', 'assets/ui/equipment/items/FP标志.png')
-    this.load.image('eq-ui-weapon-card', 'assets/ui/equipment/items/M1917图标.png')
-    this.load.image('eq-ui-weapon-wide', 'assets/ui/equipment/items/m1917.png')
-    this.load.image('eq-ui-item-grenade', 'assets/ui/equipment/items/手雷图标.png')
-    this.load.image('eq-ui-item-cigarettes', 'assets/ui/equipment/items/香烟物品.png')
     this.load.image('hud-status-bar', 'assets/ui/status/status_bar.png')
 
     this.load.image('start-bg-full', 'assets/ui/start/start_bg_full.png')
@@ -56,57 +27,6 @@ export class BootScene extends Phaser.Scene {
     this.load.image('start-btn-archives', 'assets/ui/start/start_btn_archives.png')
     this.load.image('start-btn-options', 'assets/ui/start/start_btn_options.png')
     this.load.image('start-btn-exit', 'assets/ui/start/start_btn_exit.png')
-    this.load.image(
-      'eq-ui-state-open-tabs',
-      'assets/ui/equipment/anims/open/tab/frame/上部标签栏_00089.png',
-    )
-    this.load.image(
-      'eq-ui-state-revolver-tabs',
-      'assets/ui/equipment/anims/weapon_revolver_focus/tab/frame/上部标签栏_00220.png',
-    )
-    this.load.image(
-      'eq-ui-state-grenade-tabs',
-      'assets/ui/equipment/anims/item_grenade_focus/tab/frame/上部标签栏_00230.png',
-    )
-    for (let frame = 40; frame <= 81; frame += 1) {
-      const padded = frame.toString().padStart(5, '0')
-      this.load.image(
-        `eq-ui-frame-open-${padded}`,
-        `assets/ui/equipment/anims/open/body/frames/inven_${padded}.png`,
-      )
-    }
-    for (let frame = 82; frame <= 118; frame += 1) {
-      const padded = frame.toString().padStart(5, '0')
-      this.load.image(
-        `eq-ui-frame-revolver-${padded}`,
-        `assets/ui/equipment/anims/weapon_revolver_focus/body/frames/inven_${padded}.png`,
-      )
-    }
-    for (let frame = 128; frame <= 226; frame += 1) {
-      const padded = frame.toString().padStart(5, '0')
-      this.load.image(
-        `eq-ui-frame-grenade-${padded}`,
-        `assets/ui/equipment/anims/item_grenade_focus/body/frames/inven_${padded}.png`,
-      )
-    }
-      for (const frame of MAP_OPEN_FRAME_INDEXES) {
-        const padded = frame.toString().padStart(5, '0')
-        this.load.image(
-          `map-ui-frame-open-${padded}`,
-          `assets/ui/map/anims/open/body/frames/Map界切图3_${padded}.png`,
-        )
-      }
-      this.load.image(
-        'map-ui-state-final',
-        `assets/ui/map/anims/open/body/frames/Map界切图3_${MAP_OPEN_FINAL_FRAME_INDEX.toString().padStart(5, '0')}.png`,
-      )
-      for (let frame = 0; frame <= 17; frame += 1) {
-        const padded = frame.toString().padStart(5, '0')
-        this.load.image(
-          `files-ui-frame-open-${padded}`,
-          `assets/ui/files/anima/file89_${padded}.png`,
-        )
-      }
     this.load.image('start-btn-burn-plate', 'assets/ui/start/selected/burn_plate.png')
     this.load.image(
       'start-dust-layer-near',

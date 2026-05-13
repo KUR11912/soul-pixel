@@ -105,6 +105,32 @@ const EQUIPMENT_HIT_ZONES = {
   escape: new Phaser.Geom.Rectangle(1670, 1014, 232, 66),
 }
 
+const EQUIPMENT_BASE_ASSETS: Record<string, string> = {
+  'eq-ui-bg': 'bg.png',
+  'eq-ui-reference': 'inventory界面euqipment部分.png',
+  'eq-ui-header-brush': 'Attributes底.png',
+  'eq-ui-tab-selected': '选中态标签.png',
+  'eq-ui-tab-idle-left': '未选中标签（左）.png',
+  'eq-ui-tab-idle-mid': '未选中标签（中）.png',
+  'eq-ui-equipment-strip': '物品选中标签底.png',
+  'eq-ui-slot-frame': '物品栏框.png',
+  'eq-ui-slot-frame-selected': '物品栏选中框.png',
+  'eq-ui-keycap': '普通按键底.png',
+  'eq-ui-keycap-wide': '长按键底.png',
+  'eq-ui-bar-vitality': 'Vitality数值条png.png',
+  'eq-ui-bar-endurance': 'Endurance数值条.png',
+  'eq-ui-bar-mind': 'mind数值条.png',
+  'eq-ui-icon-vitality': 'Vitality标志.png',
+  'eq-ui-icon-endurance': 'Endurance标志.png',
+  'eq-ui-icon-mind': 'Mind标志.png',
+  'eq-ui-icon-hp': 'HP标志.png',
+  'eq-ui-icon-fp': 'FP标志.png',
+  'eq-ui-weapon-card': 'M1917图标.png',
+  'eq-ui-weapon-wide': 'm1917.png',
+  'eq-ui-item-grenade': '手雷图标.png',
+  'eq-ui-item-cigarettes': '香烟物品.png',
+}
+
 const EQUIPMENT_OVERLAY_ASSETS: Record<string, string> = {
   'eq-ui-header-equipment': '组 37.png',
   'eq-ui-preview-frame': '物品底框.png',
@@ -184,9 +210,56 @@ export class EquipmentScene extends Phaser.Scene {
   }
 
   preload(): void {
+    for (const [key, fileName] of Object.entries(EQUIPMENT_BASE_ASSETS)) {
+      if (this.textures.exists(key)) continue
+      this.load.image(key, `assets/ui/equipment/items/${fileName}`)
+    }
+
     for (const [key, fileName] of Object.entries(EQUIPMENT_OVERLAY_ASSETS)) {
       if (this.textures.exists(key)) continue
       this.load.image(key, `assets/ui/equipment/items/${fileName}`)
+    }
+
+    this.loadEquipmentStateTexture(
+      'eq-ui-state-open-tabs',
+      'assets/ui/equipment/anims/open/tab/frame/上部标签栏_00089.png',
+    )
+    this.loadEquipmentStateTexture(
+      'eq-ui-state-revolver-tabs',
+      'assets/ui/equipment/anims/weapon_revolver_focus/tab/frame/上部标签栏_00220.png',
+    )
+    this.loadEquipmentStateTexture(
+      'eq-ui-state-grenade-tabs',
+      'assets/ui/equipment/anims/item_grenade_focus/tab/frame/上部标签栏_00230.png',
+    )
+
+    this.loadEquipmentFrameRange('eq-ui-frame-open', 40, 81, (padded) =>
+      `assets/ui/equipment/anims/open/body/frames/inven_${padded}.png`,
+    )
+    this.loadEquipmentFrameRange('eq-ui-frame-revolver', 82, 118, (padded) =>
+      `assets/ui/equipment/anims/weapon_revolver_focus/body/frames/inven_${padded}.png`,
+    )
+    this.loadEquipmentFrameRange('eq-ui-frame-grenade', 128, 226, (padded) =>
+      `assets/ui/equipment/anims/item_grenade_focus/body/frames/inven_${padded}.png`,
+    )
+  }
+
+  private loadEquipmentStateTexture(key: string, path: string): void {
+    if (this.textures.exists(key)) return
+    this.load.image(key, path)
+  }
+
+  private loadEquipmentFrameRange(
+    prefix: string,
+    start: number,
+    end: number,
+    buildPath: (padded: string) => string,
+  ): void {
+    for (let frame = start; frame <= end; frame += 1) {
+      const padded = frame.toString().padStart(5, '0')
+      const key = `${prefix}-${padded}`
+      if (this.textures.exists(key)) continue
+      this.load.image(key, buildPath(padded))
     }
   }
 
