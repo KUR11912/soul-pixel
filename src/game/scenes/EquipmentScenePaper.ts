@@ -204,6 +204,7 @@ export class EquipmentScene extends Phaser.Scene {
   private sequenceFrameTimer?: Phaser.Time.TimerEvent
   private isSequencePlaying = false
   private hasRevealedSequenceOverlay = false
+  private requestedSequenceAssetKeys = new Set<string>()
 
   constructor() {
     super('EquipmentScene')
@@ -233,34 +234,23 @@ export class EquipmentScene extends Phaser.Scene {
       'assets/ui/equipment/anims/item_grenade_focus/tab/frame/上部标签栏_00230.png',
     )
 
-    this.loadEquipmentFrameRange('eq-ui-frame-open', 40, 81, (padded) =>
-      `assets/ui/equipment/anims/open/body/frames/inven_${padded}.png`,
+    this.loadEquipmentStateTexture(
+      'eq-ui-frame-open-00040',
+      'assets/ui/equipment/anims/open/body/frames/inven_00040.png',
     )
-    this.loadEquipmentFrameRange('eq-ui-frame-revolver', 82, 118, (padded) =>
-      `assets/ui/equipment/anims/weapon_revolver_focus/body/frames/inven_${padded}.png`,
+    this.loadEquipmentStateTexture(
+      'eq-ui-frame-revolver-00118',
+      'assets/ui/equipment/anims/weapon_revolver_focus/body/frames/inven_00118.png',
     )
-    this.loadEquipmentFrameRange('eq-ui-frame-grenade', 128, 226, (padded) =>
-      `assets/ui/equipment/anims/item_grenade_focus/body/frames/inven_${padded}.png`,
+    this.loadEquipmentStateTexture(
+      'eq-ui-frame-grenade-00226',
+      'assets/ui/equipment/anims/item_grenade_focus/body/frames/inven_00226.png',
     )
   }
 
   private loadEquipmentStateTexture(key: string, path: string): void {
     if (this.textures.exists(key)) return
     this.load.image(key, path)
-  }
-
-  private loadEquipmentFrameRange(
-    prefix: string,
-    start: number,
-    end: number,
-    buildPath: (padded: string) => string,
-  ): void {
-    for (let frame = start; frame <= end; frame += 1) {
-      const padded = frame.toString().padStart(5, '0')
-      const key = `${prefix}-${padded}`
-      if (this.textures.exists(key)) continue
-      this.load.image(key, buildPath(padded))
-    }
   }
 
   create(): void {
@@ -279,6 +269,7 @@ export class EquipmentScene extends Phaser.Scene {
 
     this.installPaperMotion()
     this.beginInitialPresentation()
+    this.time.delayedCall(250, () => this.prefetchUiSequenceAssets())
 
     this.keyHandler = (event: KeyboardEvent) => this.onKeyDown(event)
     this.input.keyboard?.on('keydown', this.keyHandler)
@@ -754,7 +745,11 @@ export class EquipmentScene extends Phaser.Scene {
     if (this.isSequencePlaying) return
 
     if (!this.hasSequenceAssets('revolver-focus')) {
-      this.setDisplayedState('revolver', true)
+      this.ensureSequenceAssets(
+        'revolver-focus',
+        () => this.playWeaponFocus(),
+        () => this.setDisplayedState('revolver', true),
+      )
       return
     }
 
@@ -769,7 +764,11 @@ export class EquipmentScene extends Phaser.Scene {
     this.setDisplayedState('revolver', true)
 
     if (!this.hasSequenceAssets('grenade-focus')) {
-      this.setDisplayedState('grenade', true)
+      this.ensureSequenceAssets(
+        'grenade-focus',
+        () => this.playGrenadeFocus(),
+        () => this.setDisplayedState('grenade', true),
+      )
       return
     }
 
@@ -785,7 +784,11 @@ export class EquipmentScene extends Phaser.Scene {
     if (this.isSequencePlaying) return
 
     if (!this.hasSequenceAssets('files-transition')) {
-      this.switchTo('ArchiveScene')
+      this.ensureSequenceAssets(
+        'files-transition',
+        () => this.playArchiveTransition(),
+        () => this.switchTo('ArchiveScene'),
+      )
       return
     }
 
@@ -806,6 +809,88 @@ export class EquipmentScene extends Phaser.Scene {
       this.cache.video.exists(sequence.bodyVideoKey) &&
       (!sequence.tabsVideoKey || this.cache.video.exists(sequence.tabsVideoKey))
     )
+  }
+
+  private prefetchUiSequenceAssets(): void {
+    if (this.load.isLoading()) return
+    const queuedRevolver = this.queueFrameSequenceAssets('revolver-focus')
+    const queuedGrenade = this.queueFrameSequenceAssets('grenade-focus')
+    const queuedFiles = this.queueFrameSequenceAssets('files-transition')
+    const queued = queuedRevolver || queuedGrenade || queuedFiles
+    if (queued && !this.load.isLoading()) this.load.start()
+  }
+
+  private ensureSequenceAssets(
+    sequenceKey: EquipmentUiSequenceKey,
+    onReady: () => void,
+    onMissing: () => void,
+  ): void {
+    if (this.hasSequenceAssets(sequenceKey)) {
+      onReady()
+      return
+    }
+
+    if (this.load.isLoading()) {
+      this.load.once(Phaser.Loader.Events.COMPLETE, () =>
+        this.ensureSequenceAssets(sequenceKey, onReady, onMissing),
+      )
+      return
+    }
+
+    const queued = this.queueFrameSequenceAssets(sequenceKey)
+    const finish = (): void => {
+      if (this.hasSequenceAssets(sequenceKey)) {
+        onReady()
+        return
+      }
+      onMissing()
+    }
+
+    this.load.once(Phaser.Loader.Events.COMPLETE, finish)
+    if (queued) {
+      this.load.start()
+    } else {
+      this.load.off(Phaser.Loader.Events.COMPLETE, finish)
+      onMissing()
+    }
+  }
+
+  private queueFrameSequenceAssets(sequenceKey: EquipmentUiSequenceKey): boolean {
+    const sequence = EQUIPMENT_UI_SEQUENCE[sequenceKey]
+    if (sequence.mode !== 'frames') return false
+
+    let queued = false
+    for (const key of sequence.frameKeys) {
+      if (this.textures.exists(key) || this.requestedSequenceAssetKeys.has(key)) continue
+      const path = this.resolveFrameAssetPath(key)
+      if (!path) continue
+      this.load.image(key, path)
+      this.requestedSequenceAssetKeys.add(key)
+      queued = true
+    }
+    return queued
+  }
+
+  private resolveFrameAssetPath(key: string): string | undefined {
+    const frame = key.match(/(\d{5})$/)?.[1]
+    if (!frame) return undefined
+
+    if (key.startsWith('eq-ui-frame-open-')) {
+      return `assets/ui/equipment/anims/open/body/frames/inven_${frame}.png`
+    }
+    if (key.startsWith('eq-ui-frame-revolver-')) {
+      return `assets/ui/equipment/anims/weapon_revolver_focus/body/frames/inven_${frame}.png`
+    }
+    if (key.startsWith('eq-ui-frame-grenade-')) {
+      return `assets/ui/equipment/anims/item_grenade_focus/body/frames/inven_${frame}.png`
+    }
+    if (key.startsWith('files-ui-frame-open-')) {
+      return `assets/ui/files/anima/file89_${frame}.png`
+    }
+    if (key.startsWith('map-ui-frame-open-')) {
+      return `assets/ui/map/anims/open/body/frames/Map界切图3_${frame}.png`
+    }
+    return undefined
   }
 
   private playUiSequence(
