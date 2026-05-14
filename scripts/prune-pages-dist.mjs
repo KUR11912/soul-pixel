@@ -72,16 +72,18 @@ for (const file of [
   removeDistPath(file)
 }
 
-pruneNumberedFrames('assets/ui/equipment/anims/open/body/frames', (frame) => frame >= 40 && frame <= 81)
+pruneNumberedFrames('assets/ui/equipment/anims/open/body/frames', (frame) => frame === 40)
 pruneNumberedFrames(
   'assets/ui/equipment/anims/weapon_revolver_focus/body/frames',
-  (frame) => frame >= 82 && frame <= 118,
+  (frame) => frame === 118,
 )
 pruneNumberedFrames(
   'assets/ui/equipment/anims/item_grenade_focus/body/frames',
-  (frame) => frame >= 128 && frame <= 226,
+  (frame) => frame === 226,
 )
-pruneNumberedFrames('assets/ui/map/anims/open/body/frames', (frame) => frame >= 0 && frame <= 23)
+pruneNumberedFrames('assets/ui/files/anima', (frame) => frame === 17)
+pruneNumberedFrames('assets/ui/map/anims/open/body/frames', () => false)
+removeDistPath('assets/ui/map/anims/open/body/runtime')
 
 pruneTabFrames('assets/ui/equipment/anims/open/tab/frame', new Set([89]))
 pruneTabFrames('assets/ui/equipment/anims/weapon_revolver_focus/tab/frame', new Set([220]))

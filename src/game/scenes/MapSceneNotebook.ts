@@ -8,6 +8,9 @@ const MAP_OPEN_LAST_FRAME_KEY = 'map-ui-frame-open-00023'
 const MAP_OPEN_FALLBACK_KEY = 'map-ui-state-open'
 const MAP_OPEN_SEQUENCE_DURATION_MS = 2200
 const MAP_OPEN_SEQUENCE_HOLD_FIRST_MS = 180
+const USE_VIDEO_OPEN_SEQUENCE = !import.meta.env.DEV
+const MAP_OPEN_VIDEO_KEY = 'map-ui-video-open'
+const FILES_OPEN_VIDEO_KEY = 'files-ui-video-open'
 const MAP_OPEN_FRAME_INDEXES = Array.from({ length: 24 }, (_, index) => index)
 const MAP_OPEN_FRAME_KEYS = MAP_OPEN_FRAME_INDEXES.map((index) => {
   const frame = index.toString().padStart(5, '0')
@@ -31,10 +34,12 @@ export class MapScene extends Phaser.Scene {
   private root!: Phaser.GameObjects.Container
   private baseImage!: Phaser.GameObjects.Image
   private overlayImage?: Phaser.GameObjects.Image
+  private overlayVideo?: Phaser.GameObjects.Video
   private sequenceTimer?: Phaser.Time.TimerEvent
   private sequenceFrameTimer?: Phaser.Time.TimerEvent
   private keyHandler?: (event: KeyboardEvent) => void
   private isSequencePlaying = false
+  private hasRevealedVideoOverlay = false
 
   constructor() {
     super('MapScene')
@@ -47,18 +52,27 @@ export class MapScene extends Phaser.Scene {
         'assets/ui/map/states/open_from_equipment_body.png',
       )
     }
-    for (const frame of MAP_OPEN_FRAME_INDEXES) {
-      const padded = frame.toString().padStart(5, '0')
-      const key = `map-ui-frame-open-${padded}`
-      if (!this.textures.exists(key)) {
-        this.load.image(key, `assets/ui/map/anims/open/body/frames/Map界切图3_${padded}.png`)
+    if (USE_VIDEO_OPEN_SEQUENCE) {
+      if (!this.cache.video.exists(MAP_OPEN_VIDEO_KEY)) {
+        this.load.video(MAP_OPEN_VIDEO_KEY, 'assets/ui/map/anims/video/map_open.webm', true)
       }
-    }
-    if (!this.textures.exists(MAP_OPEN_FINAL_FRAME_KEY)) {
-      this.load.image(
-        MAP_OPEN_FINAL_FRAME_KEY,
-        'assets/ui/map/anims/open/body/frames/Map界切图3_00023.png',
-      )
+      if (!this.cache.video.exists(FILES_OPEN_VIDEO_KEY)) {
+        this.load.video(FILES_OPEN_VIDEO_KEY, 'assets/ui/files/anims/video/files_open.webm', true)
+      }
+    } else {
+      for (const frame of MAP_OPEN_FRAME_INDEXES) {
+        const padded = frame.toString().padStart(5, '0')
+        const key = `map-ui-frame-open-${padded}`
+        if (!this.textures.exists(key)) {
+          this.load.image(key, `assets/ui/map/anims/open/body/frames/Map界切图3_${padded}.png`)
+        }
+      }
+      if (!this.textures.exists(MAP_OPEN_FINAL_FRAME_KEY)) {
+        this.load.image(
+          MAP_OPEN_FINAL_FRAME_KEY,
+          'assets/ui/map/anims/open/body/frames/Map界切图3_00023.png',
+        )
+      }
     }
   }
 
@@ -95,6 +109,9 @@ export class MapScene extends Phaser.Scene {
   }
 
   private resolveInitialTextureKey(): string {
+    if (USE_VIDEO_OPEN_SEQUENCE) {
+      return this.resolveBaseTextureKey()
+    }
     if (this.textures.exists(MAP_OPEN_FIRST_FRAME_KEY)) {
       return MAP_OPEN_FIRST_FRAME_KEY
     }
@@ -112,6 +129,13 @@ export class MapScene extends Phaser.Scene {
   }
 
   private playEntrance(): void {
+    if (USE_VIDEO_OPEN_SEQUENCE && this.cache.video.exists(MAP_OPEN_VIDEO_KEY)) {
+      this.playVideoSequence(MAP_OPEN_VIDEO_KEY, MAP_OPEN_SEQUENCE_DURATION_MS, undefined, {
+        finalTextureKey: this.resolveBaseTextureKey(),
+      })
+      return
+    }
+
     if (MAP_OPEN_FRAME_KEYS.every((key) => this.textures.exists(key))) {
       this.playFrameSequence(MAP_OPEN_FRAME_KEYS, MAP_OPEN_SEQUENCE_DURATION_MS, undefined, {
         holdFirstMs: MAP_OPEN_SEQUENCE_HOLD_FIRST_MS,
@@ -154,6 +178,13 @@ export class MapScene extends Phaser.Scene {
   private playArchiveTransition(): void {
     if (this.isSequencePlaying) return
 
+    if (USE_VIDEO_OPEN_SEQUENCE && this.cache.video.exists(FILES_OPEN_VIDEO_KEY)) {
+      this.playVideoSequence(FILES_OPEN_VIDEO_KEY, 833, () =>
+        this.switchTo('ArchiveScene', { skipEntrance: true }),
+      )
+      return
+    }
+
     if (!FILES_OPEN_FRAME_KEYS.every((key) => this.textures.exists(key))) {
       this.switchTo('ArchiveScene')
       return
@@ -162,6 +193,47 @@ export class MapScene extends Phaser.Scene {
     this.playFrameSequence(FILES_OPEN_FRAME_KEYS, 833, () =>
       this.switchTo('ArchiveScene', { skipEntrance: true }),
     )
+  }
+
+  private playVideoSequence(
+    videoKey: string,
+    durationMs: number,
+    onComplete?: () => void,
+    options?: {
+      finalTextureKey?: string
+    },
+  ): void {
+    this.sequenceTimer?.remove(false)
+    this.sequenceFrameTimer?.remove(false)
+    this.destroySequenceOverlay()
+    this.isSequencePlaying = true
+    this.hasRevealedVideoOverlay = false
+
+    const centerX = this.rootX + (BASE_WIDTH * this.uiScale) / 2
+    const centerY = this.rootY + (BASE_HEIGHT * this.uiScale) / 2
+
+    this.overlayVideo = this.add
+      .video(centerX, centerY, videoKey)
+      .setOrigin(0.5, 0.5)
+      .setScale(this.uiScale)
+      .setDepth(120)
+      .setAlpha(0)
+    this.overlayVideo.setMute(true)
+    this.overlayVideo.setLoop(false)
+    this.overlayVideo.once('textureready', () => this.revealVideoOverlay())
+    this.overlayVideo.once('playing', () => this.revealVideoOverlay())
+    this.overlayVideo.play(false)
+
+    this.sequenceTimer = this.time.delayedCall(durationMs, () => {
+      const finalTextureKey = options?.finalTextureKey
+      if (finalTextureKey && this.textures.exists(finalTextureKey)) {
+        this.baseImage.setTexture(finalTextureKey).setDisplaySize(BASE_WIDTH, BASE_HEIGHT)
+      }
+      this.baseImage.setVisible(true)
+      this.destroySequenceOverlay()
+      this.isSequencePlaying = false
+      onComplete?.()
+    })
   }
 
   private playFrameSequence(
@@ -217,6 +289,7 @@ export class MapScene extends Phaser.Scene {
   }
 
   private destroySequenceOverlay(): void {
+    this.hasRevealedVideoOverlay = false
     this.sequenceFrameTimer?.remove(false)
     this.sequenceFrameTimer = undefined
 
@@ -224,6 +297,18 @@ export class MapScene extends Phaser.Scene {
       this.overlayImage.destroy()
       this.overlayImage = undefined
     }
+    if (this.overlayVideo) {
+      this.overlayVideo.stop()
+      this.overlayVideo.destroy()
+      this.overlayVideo = undefined
+    }
+  }
+
+  private revealVideoOverlay(): void {
+    if (this.hasRevealedVideoOverlay) return
+    this.hasRevealedVideoOverlay = true
+    this.baseImage.setVisible(false)
+    this.overlayVideo?.setAlpha(1)
   }
 
   private returnToEquipment(): void {

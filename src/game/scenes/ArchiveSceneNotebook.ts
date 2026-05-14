@@ -5,6 +5,8 @@ const BASE_HEIGHT = 1080
 const FILES_OPEN_SEQUENCE_DURATION_MS = 833
 const FILES_OPEN_FINAL_FRAME_KEY = 'files-ui-frame-open-00017'
 const FILES_OPEN_FALLBACK_KEY = 'files-ui-bg'
+const USE_VIDEO_OPEN_SEQUENCE = !import.meta.env.DEV
+const FILES_OPEN_VIDEO_KEY = 'files-ui-video-open'
 const FILES_OPEN_FRAME_KEYS = Array.from({ length: 18 }, (_, index) => {
   const frame = index.toString().padStart(5, '0')
   return `files-ui-frame-open-${frame}`
@@ -22,10 +24,12 @@ export class ArchiveScene extends Phaser.Scene {
   private rootY = 0
   private root!: Phaser.GameObjects.Container
   private baseImage!: Phaser.GameObjects.Image
+  private overlayVideo?: Phaser.GameObjects.Video
   private sequenceTimer?: Phaser.Time.TimerEvent
   private sequenceFrameTimer?: Phaser.Time.TimerEvent
   private keyHandler?: (event: KeyboardEvent) => void
   private skipEntranceSequence = false
+  private hasRevealedVideoOverlay = false
 
   constructor() {
     super('ArchiveScene')
@@ -39,11 +43,20 @@ export class ArchiveScene extends Phaser.Scene {
     if (!this.textures.exists(FILES_OPEN_FALLBACK_KEY)) {
       this.load.image(FILES_OPEN_FALLBACK_KEY, 'assets/ui/files/bg.png')
     }
-    for (let frame = 0; frame <= 17; frame += 1) {
-      const padded = frame.toString().padStart(5, '0')
-      const key = `files-ui-frame-open-${padded}`
-      if (!this.textures.exists(key)) {
-        this.load.image(key, `assets/ui/files/anima/file89_${padded}.png`)
+    if (USE_VIDEO_OPEN_SEQUENCE) {
+      if (!this.cache.video.exists(FILES_OPEN_VIDEO_KEY)) {
+        this.load.video(FILES_OPEN_VIDEO_KEY, 'assets/ui/files/anims/video/files_open.webm', true)
+      }
+      if (!this.textures.exists(FILES_OPEN_FINAL_FRAME_KEY)) {
+        this.load.image(FILES_OPEN_FINAL_FRAME_KEY, 'assets/ui/files/anima/file89_00017.png')
+      }
+    } else {
+      for (let frame = 0; frame <= 17; frame += 1) {
+        const padded = frame.toString().padStart(5, '0')
+        const key = `files-ui-frame-open-${padded}`
+        if (!this.textures.exists(key)) {
+          this.load.image(key, `assets/ui/files/anima/file89_${padded}.png`)
+        }
       }
     }
   }
@@ -69,6 +82,7 @@ export class ArchiveScene extends Phaser.Scene {
       if (this.keyHandler) this.input.keyboard?.off('keydown', this.keyHandler)
       this.sequenceTimer?.remove(false)
       this.sequenceFrameTimer?.remove(false)
+      this.destroyVideoOverlay()
     })
   }
 
@@ -79,6 +93,9 @@ export class ArchiveScene extends Phaser.Scene {
   }
 
   private resolveBaseTextureKey(): string {
+    if (USE_VIDEO_OPEN_SEQUENCE && this.textures.exists(FILES_OPEN_FINAL_FRAME_KEY)) {
+      return FILES_OPEN_FINAL_FRAME_KEY
+    }
     if (
       !this.skipEntranceSequence &&
       FILES_OPEN_FRAME_KEYS.every((key) => this.textures.exists(key))
@@ -95,6 +112,17 @@ export class ArchiveScene extends Phaser.Scene {
     if (this.skipEntranceSequence && this.baseImage.texture.key === FILES_OPEN_FINAL_FRAME_KEY) {
       this.root.setAlpha(1)
       this.root.y = this.rootY
+      return
+    }
+
+    if (
+      USE_VIDEO_OPEN_SEQUENCE &&
+      !this.skipEntranceSequence &&
+      this.cache.video.exists(FILES_OPEN_VIDEO_KEY)
+    ) {
+      this.root.setAlpha(1)
+      this.root.y = this.rootY
+      this.playVideoSequence()
       return
     }
 
@@ -139,6 +167,52 @@ export class ArchiveScene extends Phaser.Scene {
     this.sequenceTimer = this.time.delayedCall(FILES_OPEN_SEQUENCE_DURATION_MS, () => {
       this.baseImage.setTexture(FILES_OPEN_FINAL_FRAME_KEY)
     })
+  }
+
+  private playVideoSequence(): void {
+    this.sequenceTimer?.remove(false)
+    this.sequenceFrameTimer?.remove(false)
+    this.destroyVideoOverlay()
+    this.hasRevealedVideoOverlay = false
+
+    const centerX = this.rootX + (BASE_WIDTH * this.uiScale) / 2
+    const centerY = this.rootY + (BASE_HEIGHT * this.uiScale) / 2
+
+    this.overlayVideo = this.add
+      .video(centerX, centerY, FILES_OPEN_VIDEO_KEY)
+      .setOrigin(0.5, 0.5)
+      .setScale(this.uiScale)
+      .setDepth(120)
+      .setAlpha(0)
+    this.overlayVideo.setMute(true)
+    this.overlayVideo.setLoop(false)
+    this.overlayVideo.once('textureready', () => this.revealVideoOverlay())
+    this.overlayVideo.once('playing', () => this.revealVideoOverlay())
+    this.overlayVideo.play(false)
+
+    this.sequenceTimer = this.time.delayedCall(FILES_OPEN_SEQUENCE_DURATION_MS, () => {
+      if (this.textures.exists(FILES_OPEN_FINAL_FRAME_KEY)) {
+        this.baseImage.setTexture(FILES_OPEN_FINAL_FRAME_KEY)
+      }
+      this.baseImage.setVisible(true)
+      this.destroyVideoOverlay()
+    })
+  }
+
+  private revealVideoOverlay(): void {
+    if (this.hasRevealedVideoOverlay) return
+    this.hasRevealedVideoOverlay = true
+    this.baseImage.setVisible(false)
+    this.overlayVideo?.setAlpha(1)
+  }
+
+  private destroyVideoOverlay(): void {
+    this.hasRevealedVideoOverlay = false
+    if (this.overlayVideo) {
+      this.overlayVideo.stop()
+      this.overlayVideo.destroy()
+      this.overlayVideo = undefined
+    }
   }
 
   private installNavigationZones(): void {

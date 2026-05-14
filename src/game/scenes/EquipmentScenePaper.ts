@@ -42,38 +42,60 @@ const buildIndexedFrameKeys = (prefix: string, indexes: readonly number[]): stri
   })
 
 const MAP_OPEN_FRAME_INDEXES = Array.from({ length: 24 }, (_, index) => index)
+const USE_VIDEO_UI_SEQUENCES = !import.meta.env.DEV
 
 const EQUIPMENT_UI_SEQUENCE: Record<
   EquipmentUiSequenceKey,
   EquipmentFrameSequence | EquipmentVideoSequence
   > = {
-    'revolver-focus': {
+    'revolver-focus': USE_VIDEO_UI_SEQUENCES
+      ? {
+        mode: 'video',
+        bodyVideoKey: 'eq-ui-video-revolver-focus',
+        durationMs: 2200,
+        hideRoot: true,
+      }
+      : {
+        mode: 'frames',
+        frameKeys: [
+          ...buildFrameKeys('eq-ui-frame-open', 40, 81),
+          ...buildFrameKeys('eq-ui-frame-revolver', 82, 118),
+        ],
+        durationMs: 2200,
+        hideRoot: true,
+      },
+  'grenade-focus': USE_VIDEO_UI_SEQUENCES
+    ? {
+      mode: 'video',
+      bodyVideoKey: 'eq-ui-video-grenade-focus',
+      durationMs: 3300,
+      hideRoot: true,
+    }
+    : {
       mode: 'frames',
-      frameKeys: [
-        ...buildFrameKeys('eq-ui-frame-open', 40, 81),
-        ...buildFrameKeys('eq-ui-frame-revolver', 82, 118),
-      ],
-      durationMs: 2200,
+      frameKeys: buildFrameKeys('eq-ui-frame-grenade', 128, 226),
+      durationMs: 3300,
       hideRoot: true,
     },
-  'grenade-focus': {
-    mode: 'frames',
-    frameKeys: buildFrameKeys('eq-ui-frame-grenade', 128, 226),
-    durationMs: 3300,
-    hideRoot: true,
-  },
   'map-transition': {
     mode: 'frames',
     frameKeys: buildIndexedFrameKeys('map-ui-frame-open', MAP_OPEN_FRAME_INDEXES),
     durationMs: 1200,
     hideRoot: true,
   },
-  'files-transition': {
-    mode: 'frames',
-    frameKeys: buildFrameKeys('files-ui-frame-open', 0, 17),
-    durationMs: 833,
-    hideRoot: true,
-  },
+  'files-transition': USE_VIDEO_UI_SEQUENCES
+    ? {
+      mode: 'video',
+      bodyVideoKey: 'files-ui-video-open',
+      durationMs: 833,
+      hideRoot: true,
+    }
+    : {
+      mode: 'frames',
+      frameKeys: buildFrameKeys('files-ui-frame-open', 0, 17),
+      durationMs: 833,
+      hideRoot: true,
+    },
 }
 
 const EQUIPMENT_UI_STATE_TEXTURES: Record<
@@ -190,6 +212,15 @@ const loadImageIfMissing = (
   scene.load.image(key, path)
 }
 
+const loadVideoIfMissing = (
+  scene: Phaser.Scene,
+  key: string,
+  path: string,
+): void => {
+  if (scene.cache.video.exists(key)) return
+  scene.load.video(key, path, true)
+}
+
 export const queueEquipmentShellAssets = (scene: Phaser.Scene): void => {
   for (const [key, fileName] of Object.entries(EQUIPMENT_BASE_ASSETS)) {
     loadImageIfMissing(scene, key, `assets/ui/equipment/items/${fileName}`)
@@ -230,6 +261,24 @@ export const queueEquipmentShellAssets = (scene: Phaser.Scene): void => {
     'eq-ui-frame-grenade-00226',
     'assets/ui/equipment/anims/item_grenade_focus/body/frames/inven_00226.png',
   )
+
+  if (USE_VIDEO_UI_SEQUENCES) {
+    loadVideoIfMissing(
+      scene,
+      'eq-ui-video-revolver-focus',
+      'assets/ui/equipment/anims/video/revolver_focus_alpha.webm',
+    )
+    loadVideoIfMissing(
+      scene,
+      'eq-ui-video-grenade-focus',
+      'assets/ui/equipment/anims/video/grenade_focus_alpha.webm',
+    )
+    loadVideoIfMissing(
+      scene,
+      'files-ui-video-open',
+      'assets/ui/files/anims/video/files_open.webm',
+    )
+  }
 }
 
 export class EquipmentScene extends Phaser.Scene {
@@ -824,6 +873,7 @@ export class EquipmentScene extends Phaser.Scene {
   }
 
   private prefetchUiSequenceAssets(): void {
+    if (USE_VIDEO_UI_SEQUENCES) return
     if (this.load.isLoading()) return
     const queuedRevolver = this.queueFrameSequenceAssets('revolver-focus')
     const queuedGrenade = this.queueFrameSequenceAssets('grenade-focus')
