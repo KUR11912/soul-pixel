@@ -36,14 +36,6 @@ export class BootScene extends Phaser.Scene {
       'start-dust-layer-mid',
       'assets/ui/start/particles/dust_layers/clean/A2.png',
     )
-    this.load.image(
-      'start-dust-fx-mid',
-      'assets/ui/start/particles/sprites/dust_mid_fx.png.png',
-    )
-    this.load.image(
-      'start-dust-fx-near',
-      'assets/ui/start/particles/sprites/dust_near_fx.png.png',
-    )
     for (let i = 1; i <= 10; i += 1) {
       const frame = i.toString().padStart(2, '0')
       this.load.image(
@@ -57,10 +49,10 @@ export class BootScene extends Phaser.Scene {
       field_coat: 'FP标志.png',
       service_rifle: 'm1917.png',
       trench_club: 'M1917图标.png',
-      supply_bag: '手雷图标.png',
-      first_aid: '香烟物品.png',
+      supply_bag: 'iji/手雷图标.png',
+      first_aid: 'iji/香烟物品.png',
       ammo_crate: 'm1917.png',
-      ration_can: '香烟物品.png',
+      ration_can: 'iji/香烟物品.png',
       bandage_roll: 'Vitality标志.png',
       wire_pliers: 'M1917图标.png',
     }

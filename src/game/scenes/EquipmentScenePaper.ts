@@ -127,8 +127,8 @@ const EQUIPMENT_BASE_ASSETS: Record<string, string> = {
   'eq-ui-icon-fp': 'FP标志.png',
   'eq-ui-weapon-card': 'M1917图标.png',
   'eq-ui-weapon-wide': 'm1917.png',
-  'eq-ui-item-grenade': '手雷图标.png',
-  'eq-ui-item-cigarettes': '香烟物品.png',
+  'eq-ui-item-grenade': 'iji/手雷图标.png',
+  'eq-ui-item-cigarettes': 'iji/香烟物品.png',
 }
 
 const EQUIPMENT_OVERLAY_ASSETS: Record<string, string> = {
