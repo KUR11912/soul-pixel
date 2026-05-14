@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { loadSaveData } from '../save/SaveStore'
+import { queueEquipmentShellAssets } from './EquipmentScenePaper'
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -11,6 +12,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('bg-main', 'assets/art/tilesets/main_background.png')
 
     this.load.image('hud-status-bar', 'assets/ui/status/status_bar.png')
+    queueEquipmentShellAssets(this)
 
     this.load.image('start-bg-full', 'assets/ui/start/start_bg_full.png')
     this.load.image('start-desk-base', 'assets/ui/start/desk_base.png')

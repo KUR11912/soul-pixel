@@ -181,6 +181,57 @@ const EQUIPMENT_OVERLAY_ASSETS: Record<string, string> = {
   'eq-ui-text-return': 'Return.png',
 }
 
+const loadImageIfMissing = (
+  scene: Phaser.Scene,
+  key: string,
+  path: string,
+): void => {
+  if (scene.textures.exists(key)) return
+  scene.load.image(key, path)
+}
+
+export const queueEquipmentShellAssets = (scene: Phaser.Scene): void => {
+  for (const [key, fileName] of Object.entries(EQUIPMENT_BASE_ASSETS)) {
+    loadImageIfMissing(scene, key, `assets/ui/equipment/items/${fileName}`)
+  }
+
+  for (const [key, fileName] of Object.entries(EQUIPMENT_OVERLAY_ASSETS)) {
+    loadImageIfMissing(scene, key, `assets/ui/equipment/items/${fileName}`)
+  }
+
+  loadImageIfMissing(
+    scene,
+    'eq-ui-state-open-tabs',
+    'assets/ui/equipment/anims/open/tab/frame/上部标签栏_00089.png',
+  )
+  loadImageIfMissing(
+    scene,
+    'eq-ui-state-revolver-tabs',
+    'assets/ui/equipment/anims/weapon_revolver_focus/tab/frame/上部标签栏_00220.png',
+  )
+  loadImageIfMissing(
+    scene,
+    'eq-ui-state-grenade-tabs',
+    'assets/ui/equipment/anims/item_grenade_focus/tab/frame/上部标签栏_00230.png',
+  )
+
+  loadImageIfMissing(
+    scene,
+    'eq-ui-frame-open-00040',
+    'assets/ui/equipment/anims/open/body/frames/inven_00040.png',
+  )
+  loadImageIfMissing(
+    scene,
+    'eq-ui-frame-revolver-00118',
+    'assets/ui/equipment/anims/weapon_revolver_focus/body/frames/inven_00118.png',
+  )
+  loadImageIfMissing(
+    scene,
+    'eq-ui-frame-grenade-00226',
+    'assets/ui/equipment/anims/item_grenade_focus/body/frames/inven_00226.png',
+  )
+}
+
 export class EquipmentScene extends Phaser.Scene {
   private uiScale = 1
   private rootX = 0
@@ -211,46 +262,7 @@ export class EquipmentScene extends Phaser.Scene {
   }
 
   preload(): void {
-    for (const [key, fileName] of Object.entries(EQUIPMENT_BASE_ASSETS)) {
-      if (this.textures.exists(key)) continue
-      this.load.image(key, `assets/ui/equipment/items/${fileName}`)
-    }
-
-    for (const [key, fileName] of Object.entries(EQUIPMENT_OVERLAY_ASSETS)) {
-      if (this.textures.exists(key)) continue
-      this.load.image(key, `assets/ui/equipment/items/${fileName}`)
-    }
-
-    this.loadEquipmentStateTexture(
-      'eq-ui-state-open-tabs',
-      'assets/ui/equipment/anims/open/tab/frame/上部标签栏_00089.png',
-    )
-    this.loadEquipmentStateTexture(
-      'eq-ui-state-revolver-tabs',
-      'assets/ui/equipment/anims/weapon_revolver_focus/tab/frame/上部标签栏_00220.png',
-    )
-    this.loadEquipmentStateTexture(
-      'eq-ui-state-grenade-tabs',
-      'assets/ui/equipment/anims/item_grenade_focus/tab/frame/上部标签栏_00230.png',
-    )
-
-    this.loadEquipmentStateTexture(
-      'eq-ui-frame-open-00040',
-      'assets/ui/equipment/anims/open/body/frames/inven_00040.png',
-    )
-    this.loadEquipmentStateTexture(
-      'eq-ui-frame-revolver-00118',
-      'assets/ui/equipment/anims/weapon_revolver_focus/body/frames/inven_00118.png',
-    )
-    this.loadEquipmentStateTexture(
-      'eq-ui-frame-grenade-00226',
-      'assets/ui/equipment/anims/item_grenade_focus/body/frames/inven_00226.png',
-    )
-  }
-
-  private loadEquipmentStateTexture(key: string, path: string): void {
-    if (this.textures.exists(key)) return
-    this.load.image(key, path)
+    queueEquipmentShellAssets(this)
   }
 
   create(): void {
