@@ -1028,10 +1028,12 @@ export class Level01Scene extends Phaser.Scene {
       .rectangle(prevX, prevY, 30, 68, 0xffa45b, 0.6)
       .setStrokeStyle(2, 0xffe7ca, 0.95)
       .setDepth(18)
+      .setVisible(false)
     const nextPortal = this.add
       .rectangle(nextX, nextY, 30, 68, 0x66d4ff, 0.6)
       .setStrokeStyle(2, 0xd9f5ff, 0.95)
       .setDepth(18)
+      .setVisible(false)
 
     this.physics.add.existing(prevPortal, true)
     this.physics.add.existing(nextPortal, true)
@@ -1046,6 +1048,7 @@ export class Level01Scene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(19)
+      .setVisible(false)
     const nextLabel = this.add
       .text(nextX, nextY - 48, 'NEXT', {
         fontFamily: 'monospace',
@@ -1056,6 +1059,7 @@ export class Level01Scene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(19)
+      .setVisible(false)
 
     this.portalTexts.push(prevLabel, nextLabel)
 
@@ -1104,6 +1108,7 @@ export class Level01Scene extends Phaser.Scene {
         .rectangle(x, y, worldW, worldH, fillColor, fillAlpha)
         .setStrokeStyle(2, strokeColor, strokeAlpha)
         .setDepth(18)
+        .setVisible(false)
       this.physics.add.existing(portal, true)
 
       const label = this.add
@@ -1116,6 +1121,7 @@ export class Level01Scene extends Phaser.Scene {
         })
         .setOrigin(0.5)
         .setDepth(19)
+        .setVisible(false)
       this.portalTexts.push(label)
 
       this.physics.add.overlap(this.player, portal, () => {
@@ -1146,6 +1152,7 @@ export class Level01Scene extends Phaser.Scene {
       .rectangle(x, y, worldW, worldH, 0x66d4ff, 0.62)
       .setStrokeStyle(2, 0xd9f5ff, 0.95)
       .setDepth(18)
+      .setVisible(false)
     this.physics.add.existing(portal, true)
 
     const label = this.add
@@ -1158,6 +1165,7 @@ export class Level01Scene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(19)
+      .setVisible(false)
     this.portalTexts.push(label)
 
     this.physics.add.overlap(this.player, portal, () => {
@@ -1188,6 +1196,7 @@ export class Level01Scene extends Phaser.Scene {
       )
       .setStrokeStyle(2, 0xffe7ca, 0.95)
       .setDepth(18)
+      .setVisible(false)
     this.physics.add.existing(portal, true)
 
     const label = this.add
@@ -1200,6 +1209,7 @@ export class Level01Scene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(19)
+      .setVisible(false)
     this.portalTexts.push(label)
 
     this.physics.add.overlap(this.player, portal, () => {
