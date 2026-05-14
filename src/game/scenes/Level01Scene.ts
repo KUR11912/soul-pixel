@@ -266,7 +266,6 @@ export class Level01Scene extends Phaser.Scene {
   private lastRoomId = ''
   private transitioning = false
   private portalReadyAt = 0
-  private portalTexts: Phaser.GameObjects.Text[] = []
   private portalAnchors: { prev: PortalAnchor; next: PortalAnchor } | null = null
   private pendingEntryPortal: 'prev' | 'next' | null = null
   private mechanismDoors: MechanismDoorState[] = []
@@ -320,7 +319,6 @@ export class Level01Scene extends Phaser.Scene {
     // Scene instances are reused by Phaser after start/stop; reset portal state on each entry.
     this.transitioning = false
     this.portalReadyAt = 0
-    this.portalTexts = []
     this.portalAnchors = null
     this.mechanismDoors = []
     this.terrainCollider = undefined
@@ -1024,47 +1022,8 @@ export class Level01Scene extends Phaser.Scene {
     const nextX = next.x
     const nextY = next.y
 
-    const prevPortal = this.add
-      .rectangle(prevX, prevY, 30, 68, 0xffa45b, 0.6)
-      .setStrokeStyle(2, 0xffe7ca, 0.95)
-      .setDepth(18)
-    const nextPortal = this.add
-      .rectangle(nextX, nextY, 30, 68, 0x66d4ff, 0.6)
-      .setStrokeStyle(2, 0xd9f5ff, 0.95)
-      .setDepth(18)
-
-    this.physics.add.existing(prevPortal, true)
-    this.physics.add.existing(nextPortal, true)
-
-    const prevLabel = this.add
-      .text(prevX, prevY - 48, 'PREV', {
-        fontFamily: 'monospace',
-        fontSize: '10px',
-        color: '#ffd9b3',
-        stroke: '#2a1300',
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5)
-      .setDepth(19)
-    const nextLabel = this.add
-      .text(nextX, nextY - 48, 'NEXT', {
-        fontFamily: 'monospace',
-        fontSize: '10px',
-        color: '#c6efff',
-        stroke: '#001825',
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5)
-      .setDepth(19)
-
-    this.portalTexts.push(prevLabel, nextLabel)
-
-    this.physics.add.overlap(this.player, prevPortal, () => {
-      this.onTravelPortalTouched('prev')
-    })
-    this.physics.add.overlap(this.player, nextPortal, () => {
-      this.onTravelPortalTouched('next')
-    })
+    this.createInvisibleTravelPortal(prevX, prevY, 30, 68, 'prev')
+    this.createInvisibleTravelPortal(nextX, nextY, 30, 68, 'next')
   }
 
   private createCustomTravelPortals(): boolean {
@@ -1091,36 +1050,7 @@ export class Level01Scene extends Phaser.Scene {
         Math.max(worldH * 0.5, this.worldHeight - worldH * 0.5),
       )
 
-      const isPrev = portalConfig.kind === 'prev'
-      const fillColor = portalConfig.fillColor ?? (isPrev ? 0xffa45b : 0x66d4ff)
-      const fillAlpha = portalConfig.fillAlpha ?? 0.62
-      const strokeColor = portalConfig.strokeColor ?? (isPrev ? 0xffe7ca : 0xd9f5ff)
-      const strokeAlpha = portalConfig.strokeAlpha ?? 0.95
-      const labelColor = portalConfig.labelColor ?? (isPrev ? '#ffd9b3' : '#c6efff')
-      const labelStrokeColor = portalConfig.labelStrokeColor ?? (isPrev ? '#2a1300' : '#001825')
-      const labelText = portalConfig.label ?? (isPrev ? 'PREV' : 'NEXT')
-
-      const portal = this.add
-        .rectangle(x, y, worldW, worldH, fillColor, fillAlpha)
-        .setStrokeStyle(2, strokeColor, strokeAlpha)
-        .setDepth(18)
-      this.physics.add.existing(portal, true)
-
-      const label = this.add
-        .text(x, y - 48, labelText, {
-          fontFamily: 'monospace',
-          fontSize: '10px',
-          color: labelColor,
-          stroke: labelStrokeColor,
-          strokeThickness: 2,
-        })
-        .setOrigin(0.5)
-        .setDepth(19)
-      this.portalTexts.push(label)
-
-      this.physics.add.overlap(this.player, portal, () => {
-        this.onTravelPortalTouched(portalConfig.kind)
-      })
+      this.createInvisibleTravelPortal(x, y, worldW, worldH, portalConfig.kind)
     }
 
     return true
@@ -1142,27 +1072,7 @@ export class Level01Scene extends Phaser.Scene {
       Math.max(worldH * 0.5, this.worldHeight - worldH * 0.5),
     )
 
-    const portal = this.add
-      .rectangle(x, y, worldW, worldH, 0x66d4ff, 0.62)
-      .setStrokeStyle(2, 0xd9f5ff, 0.95)
-      .setDepth(18)
-    this.physics.add.existing(portal, true)
-
-    const label = this.add
-      .text(x, y - 48, 'TO L02', {
-        fontFamily: 'monospace',
-        fontSize: '10px',
-        color: '#c6efff',
-        stroke: '#001825',
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5)
-      .setDepth(19)
-    this.portalTexts.push(label)
-
-    this.physics.add.overlap(this.player, portal, () => {
-      this.onTravelPortalTouched('next')
-    })
+    this.createInvisibleTravelPortal(x, y, worldW, worldH, 'next')
   }
 
   private createLevel03PortalToLevel02(): void {
@@ -1177,33 +1087,26 @@ export class Level01Scene extends Phaser.Scene {
       Math.max(16, this.worldHeight - 16),
     )
 
-    const portal = this.add
-      .rectangle(
-        x,
-        y,
-        LEVEL03_TO_LEVEL02_PORTAL.w,
-        LEVEL03_TO_LEVEL02_PORTAL.h,
-        0xffa45b,
-        0.62,
-      )
-      .setStrokeStyle(2, 0xffe7ca, 0.95)
-      .setDepth(18)
+    this.createInvisibleTravelPortal(
+      x,
+      y,
+      LEVEL03_TO_LEVEL02_PORTAL.w,
+      LEVEL03_TO_LEVEL02_PORTAL.h,
+      'prev',
+    )
+  }
+
+  private createInvisibleTravelPortal(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    kind: 'prev' | 'next',
+  ): void {
+    const portal = this.add.rectangle(x, y, width, height, 0xffffff, 0).setDepth(18)
     this.physics.add.existing(portal, true)
-
-    const label = this.add
-      .text(x, y - 48, 'TO L02', {
-        fontFamily: 'monospace',
-        fontSize: '10px',
-        color: '#ffd9b3',
-        stroke: '#2a1300',
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5)
-      .setDepth(19)
-    this.portalTexts.push(label)
-
     this.physics.add.overlap(this.player, portal, () => {
-      this.onTravelPortalTouched('prev')
+      this.onTravelPortalTouched(kind)
     })
   }
 

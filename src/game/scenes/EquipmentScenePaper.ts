@@ -29,6 +29,12 @@ type EquipmentVideoSequence = {
   hideRoot: boolean
 }
 
+type EquipmentStateFadeSequence = {
+  mode: 'state-fade'
+  finalState: EquipmentUiStateKey
+  durationMs: number
+}
+
 const buildFrameKeys = (prefix: string, start: number, end: number): string[] =>
   Array.from({ length: end - start + 1 }, (_, index) => {
     const frame = (start + index).toString().padStart(5, '0')
@@ -46,14 +52,13 @@ const USE_VIDEO_UI_SEQUENCES = !import.meta.env.DEV
 
 const EQUIPMENT_UI_SEQUENCE: Record<
   EquipmentUiSequenceKey,
-  EquipmentFrameSequence | EquipmentVideoSequence
+  EquipmentFrameSequence | EquipmentVideoSequence | EquipmentStateFadeSequence
   > = {
     'revolver-focus': USE_VIDEO_UI_SEQUENCES
       ? {
-        mode: 'video',
-        bodyVideoKey: 'eq-ui-video-revolver-focus',
-        durationMs: 2200,
-        hideRoot: true,
+        mode: 'state-fade',
+        finalState: 'revolver',
+        durationMs: 180,
       }
       : {
         mode: 'frames',
@@ -66,10 +71,9 @@ const EQUIPMENT_UI_SEQUENCE: Record<
       },
   'grenade-focus': USE_VIDEO_UI_SEQUENCES
     ? {
-      mode: 'video',
-      bodyVideoKey: 'eq-ui-video-grenade-focus',
-      durationMs: 3300,
-      hideRoot: true,
+      mode: 'state-fade',
+      finalState: 'grenade',
+      durationMs: 180,
     }
     : {
       mode: 'frames',
@@ -263,16 +267,6 @@ export const queueEquipmentShellAssets = (scene: Phaser.Scene): void => {
   )
 
   if (USE_VIDEO_UI_SEQUENCES) {
-    loadVideoIfMissing(
-      scene,
-      'eq-ui-video-revolver-focus',
-      'assets/ui/equipment/anims/video/revolver_focus_alpha.webm',
-    )
-    loadVideoIfMissing(
-      scene,
-      'eq-ui-video-grenade-focus',
-      'assets/ui/equipment/anims/video/grenade_focus_alpha.webm',
-    )
     loadVideoIfMissing(
       scene,
       'files-ui-video-open',
@@ -866,10 +860,15 @@ export class EquipmentScene extends Phaser.Scene {
       return sequence.frameKeys.every((key) => this.textures.exists(key))
     }
 
-    return (
-      this.cache.video.exists(sequence.bodyVideoKey) &&
-      (!sequence.tabsVideoKey || this.cache.video.exists(sequence.tabsVideoKey))
-    )
+    if (sequence.mode === 'video') {
+      return (
+        this.cache.video.exists(sequence.bodyVideoKey) &&
+        (!sequence.tabsVideoKey || this.cache.video.exists(sequence.tabsVideoKey))
+      )
+    }
+
+    const state = EQUIPMENT_UI_STATE_TEXTURES[sequence.finalState]
+    return this.textures.exists(state.bodyKey) && this.textures.exists(state.tabsKey)
   }
 
   private prefetchUiSequenceAssets(): void {
@@ -973,6 +972,11 @@ export class EquipmentScene extends Phaser.Scene {
       return
     }
 
+    if (sequence.mode === 'state-fade') {
+      this.playStateFadeSequence(sequence, onComplete)
+      return
+    }
+
     const centerX = this.rootX + (BASE_WIDTH * this.uiScale) / 2
     const centerY = this.rootY + (BASE_HEIGHT * this.uiScale) / 2
 
@@ -1008,6 +1012,40 @@ export class EquipmentScene extends Phaser.Scene {
 
     this.sequenceTimer = this.time.delayedCall(sequence.durationMs, () => {
       if (sequence.hideRoot) this.baseBodyImage.setVisible(true)
+      this.destroyUiSequenceOverlay()
+      this.isSequencePlaying = false
+      onComplete?.()
+    })
+  }
+
+  private playStateFadeSequence(
+    sequence: EquipmentStateFadeSequence,
+    onComplete?: () => void,
+  ): void {
+    const finalTextureKey = this.ensureCompositeStateTexture(sequence.finalState)
+    if (!this.textures.exists(finalTextureKey)) {
+      this.setDisplayedState(sequence.finalState, true)
+      this.isSequencePlaying = false
+      onComplete?.()
+      return
+    }
+
+    this.overlayBodyImage = this.add
+      .image(this.rootX, this.rootY, finalTextureKey)
+      .setOrigin(0, 0)
+      .setDisplaySize(BASE_WIDTH * this.uiScale, BASE_HEIGHT * this.uiScale)
+      .setDepth(120)
+      .setAlpha(0)
+
+    this.tweens.add({
+      targets: this.overlayBodyImage,
+      alpha: 1,
+      duration: sequence.durationMs,
+      ease: 'Quad.Out',
+    })
+
+    this.sequenceTimer = this.time.delayedCall(sequence.durationMs, () => {
+      this.setDisplayedState(sequence.finalState, true)
       this.destroyUiSequenceOverlay()
       this.isSequencePlaying = false
       onComplete?.()

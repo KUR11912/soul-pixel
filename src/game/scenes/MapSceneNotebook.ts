@@ -52,6 +52,12 @@ export class MapScene extends Phaser.Scene {
         'assets/ui/map/states/open_from_equipment_body.png',
       )
     }
+    if (!this.textures.exists(MAP_OPEN_FINAL_FRAME_KEY)) {
+      this.load.image(
+        MAP_OPEN_FINAL_FRAME_KEY,
+        'assets/ui/map/anims/open/body/frames/Map界切图3_00023.png',
+      )
+    }
     if (USE_VIDEO_OPEN_SEQUENCE) {
       if (!this.cache.video.exists(MAP_OPEN_VIDEO_KEY)) {
         this.load.video(MAP_OPEN_VIDEO_KEY, 'assets/ui/map/anims/video/map_open.webm', true)

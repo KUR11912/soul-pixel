@@ -81,8 +81,10 @@ pruneNumberedFrames(
   'assets/ui/equipment/anims/item_grenade_focus/body/frames',
   (frame) => frame === 226,
 )
+removeDistPath('assets/ui/equipment/anims/video/revolver_focus_alpha.webm')
+removeDistPath('assets/ui/equipment/anims/video/grenade_focus_alpha.webm')
 pruneNumberedFrames('assets/ui/files/anima', (frame) => frame === 17)
-pruneNumberedFrames('assets/ui/map/anims/open/body/frames', () => false)
+pruneNumberedFrames('assets/ui/map/anims/open/body/frames', (frame) => frame === 23)
 removeDistPath('assets/ui/map/anims/open/body/runtime')
 
 pruneTabFrames('assets/ui/equipment/anims/open/tab/frame', new Set([89]))
