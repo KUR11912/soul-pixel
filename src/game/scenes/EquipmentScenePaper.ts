@@ -42,40 +42,23 @@ const buildIndexedFrameKeys = (prefix: string, indexes: readonly number[]): stri
   })
 
 const MAP_OPEN_FRAME_INDEXES = Array.from({ length: 24 }, (_, index) => index)
-const USE_LOCAL_FRAME_SEQUENCES = import.meta.env.DEV
-const USE_LEGACY_EQUIPMENT_FRAMES = USE_LOCAL_FRAME_SEQUENCES
-const USE_COMPACT_EQUIPMENT_STATES = !USE_LEGACY_EQUIPMENT_FRAMES
 
 const EQUIPMENT_UI_SEQUENCE: Record<
   EquipmentUiSequenceKey,
   EquipmentFrameSequence | EquipmentVideoSequence
   > = {
-    'revolver-focus': USE_LOCAL_FRAME_SEQUENCES
-      ? {
-        mode: 'frames',
-        frameKeys: [
-          ...buildFrameKeys('eq-ui-frame-open', 40, 81),
-          ...buildFrameKeys('eq-ui-frame-revolver', 82, 118),
-        ],
-        durationMs: 2200,
-        hideRoot: true,
-      }
-      : {
-      mode: 'video',
-      bodyVideoKey: 'eq-ui-video-revolver-focus',
+    'revolver-focus': {
+      mode: 'frames',
+      frameKeys: [
+        ...buildFrameKeys('eq-ui-frame-open', 40, 81),
+        ...buildFrameKeys('eq-ui-frame-revolver', 82, 118),
+      ],
       durationMs: 2200,
       hideRoot: true,
     },
-  'grenade-focus': USE_LOCAL_FRAME_SEQUENCES
-    ? {
-      mode: 'frames',
-      frameKeys: buildFrameKeys('eq-ui-frame-grenade', 128, 226),
-      durationMs: 3300,
-      hideRoot: true,
-    }
-    : {
-    mode: 'video',
-    bodyVideoKey: 'eq-ui-video-grenade-focus',
+  'grenade-focus': {
+    mode: 'frames',
+    frameKeys: buildFrameKeys('eq-ui-frame-grenade', 128, 226),
     durationMs: 3300,
     hideRoot: true,
   },
@@ -112,18 +95,6 @@ const EQUIPMENT_UI_STATE_TEXTURES: Record<
     bodyKey: 'eq-ui-frame-grenade-00226',
     tabsKey: 'eq-ui-state-grenade-tabs',
   },
-}
-
-const EQUIPMENT_COMPACT_STATE_TEXTURES: Record<EquipmentUiStateKey, string> = {
-  open: 'eq-ui-state-open-body',
-  revolver: 'eq-ui-state-revolver-body',
-  grenade: 'eq-ui-state-grenade-body',
-}
-
-const EQUIPMENT_COMPACT_STATE_ASSETS: Record<string, string> = {
-  'eq-ui-state-open-body': 'open_body.png',
-  'eq-ui-state-revolver-body': 'revolver_body.png',
-  'eq-ui-state-grenade-body': 'grenade_body.png',
 }
 
 const EQUIPMENT_HIT_ZONES = {
@@ -219,23 +190,7 @@ const loadImageIfMissing = (
   scene.load.image(key, path)
 }
 
-const loadVideoIfMissing = (
-  scene: Phaser.Scene,
-  key: string,
-  path: string,
-): void => {
-  if (scene.cache.video.exists(key)) return
-  scene.load.video(key, path, true)
-}
-
 export const queueEquipmentShellAssets = (scene: Phaser.Scene): void => {
-  if (USE_COMPACT_EQUIPMENT_STATES) {
-    for (const [key, fileName] of Object.entries(EQUIPMENT_COMPACT_STATE_ASSETS)) {
-      loadImageIfMissing(scene, key, `assets/ui/equipment/states/${fileName}`)
-    }
-    return
-  }
-
   for (const [key, fileName] of Object.entries(EQUIPMENT_BASE_ASSETS)) {
     loadImageIfMissing(scene, key, `assets/ui/equipment/items/${fileName}`)
   }
@@ -244,52 +199,37 @@ export const queueEquipmentShellAssets = (scene: Phaser.Scene): void => {
     loadImageIfMissing(scene, key, `assets/ui/equipment/items/${fileName}`)
   }
 
-  if (USE_LEGACY_EQUIPMENT_FRAMES) {
-    loadImageIfMissing(
-      scene,
-      'eq-ui-state-open-tabs',
-      'assets/ui/equipment/anims/open/tab/frame/上部标签栏_00089.png',
-    )
-    loadImageIfMissing(
-      scene,
-      'eq-ui-state-revolver-tabs',
-      'assets/ui/equipment/anims/weapon_revolver_focus/tab/frame/上部标签栏_00220.png',
-    )
-    loadImageIfMissing(
-      scene,
-      'eq-ui-state-grenade-tabs',
-      'assets/ui/equipment/anims/item_grenade_focus/tab/frame/上部标签栏_00230.png',
-    )
+  loadImageIfMissing(
+    scene,
+    'eq-ui-state-open-tabs',
+    'assets/ui/equipment/anims/open/tab/frame/上部标签栏_00089.png',
+  )
+  loadImageIfMissing(
+    scene,
+    'eq-ui-state-revolver-tabs',
+    'assets/ui/equipment/anims/weapon_revolver_focus/tab/frame/上部标签栏_00220.png',
+  )
+  loadImageIfMissing(
+    scene,
+    'eq-ui-state-grenade-tabs',
+    'assets/ui/equipment/anims/item_grenade_focus/tab/frame/上部标签栏_00230.png',
+  )
 
-    loadImageIfMissing(
-      scene,
-      'eq-ui-frame-open-00040',
-      'assets/ui/equipment/anims/open/body/frames/inven_00040.png',
-    )
-    loadImageIfMissing(
-      scene,
-      'eq-ui-frame-revolver-00118',
-      'assets/ui/equipment/anims/weapon_revolver_focus/body/frames/inven_00118.png',
-    )
-    loadImageIfMissing(
-      scene,
-      'eq-ui-frame-grenade-00226',
-      'assets/ui/equipment/anims/item_grenade_focus/body/frames/inven_00226.png',
-    )
-  }
-
-  if (!USE_LOCAL_FRAME_SEQUENCES) {
-    loadVideoIfMissing(
-      scene,
-      'eq-ui-video-revolver-focus',
-      'assets/ui/equipment/anims/video/revolver_focus_alpha.webm',
-    )
-    loadVideoIfMissing(
-      scene,
-      'eq-ui-video-grenade-focus',
-      'assets/ui/equipment/anims/video/grenade_focus_alpha.webm',
-    )
-  }
+  loadImageIfMissing(
+    scene,
+    'eq-ui-frame-open-00040',
+    'assets/ui/equipment/anims/open/body/frames/inven_00040.png',
+  )
+  loadImageIfMissing(
+    scene,
+    'eq-ui-frame-revolver-00118',
+    'assets/ui/equipment/anims/weapon_revolver_focus/body/frames/inven_00118.png',
+  )
+  loadImageIfMissing(
+    scene,
+    'eq-ui-frame-grenade-00226',
+    'assets/ui/equipment/anims/item_grenade_focus/body/frames/inven_00226.png',
+  )
 }
 
 export class EquipmentScene extends Phaser.Scene {
@@ -362,25 +302,12 @@ export class EquipmentScene extends Phaser.Scene {
   }
 
   private buildAnimatedLayout(): void {
-    const baseTexture = USE_LEGACY_EQUIPMENT_FRAMES
-      ? this.ensureCompositeStateTexture('open')
-      : EQUIPMENT_COMPACT_STATE_TEXTURES.open
-
-    this.baseBodyImage = this.add.image(0, 0, baseTexture).setOrigin(0, 0)
+    this.baseBodyImage = this.add
+      .image(0, 0, this.ensureCompositeStateTexture('open'))
+      .setOrigin(0, 0)
     this.root.add(this.baseBodyImage)
-    this.decorativeNodes.push(this.baseBodyImage)
 
-    if (USE_LEGACY_EQUIPMENT_FRAMES) {
-      // The local dev build keeps the original frame-sequence workflow.
-    } else if (!USE_COMPACT_EQUIPMENT_STATES) {
-      this.buildBackground()
-      this.buildTopBar()
-      this.buildLeftColumn()
-      this.buildCenterColumn()
-      this.buildRightColumn()
-      this.buildBottomBar()
-      this.startPulse()
-    }
+    this.decorativeNodes.push(this.baseBodyImage)
 
     this.createHitZone(EQUIPMENT_HIT_ZONES.filesTab, () => this.playArchiveTransition())
     this.createHitZone(EQUIPMENT_HIT_ZONES.mapTab, () => this.playMapTransition())
@@ -772,20 +699,10 @@ export class EquipmentScene extends Phaser.Scene {
   private setDisplayedState(stateKey: EquipmentUiStateKey, force = false): void {
     if (!force && this.currentState === stateKey) return
 
+    const state = EQUIPMENT_UI_STATE_TEXTURES[stateKey]
     this.currentState = stateKey
-    if (USE_LEGACY_EQUIPMENT_FRAMES) {
-      const state = EQUIPMENT_UI_STATE_TEXTURES[stateKey]
-      this.baseBodyImage.setTexture(this.ensureCompositeStateTexture(stateKey))
-      this.baseTabsImage?.setTexture(state.tabsKey)
-      return
-    }
-
-    if (USE_COMPACT_EQUIPMENT_STATES) {
-      this.baseBodyImage.setTexture(EQUIPMENT_COMPACT_STATE_TEXTURES[stateKey])
-      return
-    }
-
-    this.applyEquipmentSelectionState(stateKey)
+    this.baseBodyImage.setTexture(this.ensureCompositeStateTexture(stateKey))
+    this.baseTabsImage?.setTexture(state.tabsKey)
   }
 
   private beginInitialPresentation(): void {
@@ -832,77 +749,12 @@ export class EquipmentScene extends Phaser.Scene {
     return Array.isArray(source) ? source[0] ?? null : source
   }
 
-  private applyEquipmentSelectionState(stateKey: EquipmentUiStateKey): void {
-    if (!this.selectedFrame || !this.selectedIcon) return
-
-    if (stateKey === 'grenade') {
-      this.selectedFrame.setTexture('eq-ui-slot-frame-selected')
-      this.selectedFrame.setPosition(1303, 777)
-      this.selectedFrame.setScale(1)
-      this.selectedIcon.setTexture('eq-ui-item-grenade')
-      this.selectedIcon.setPosition(1359, 843)
-      this.selectedIcon.setScale(1)
-      return
-    }
-
-    this.selectedFrame.setTexture('eq-ui-slot-wide-selected')
-    this.selectedFrame.setPosition(1301, 615)
-    this.selectedFrame.setScale(1)
-    this.selectedIcon.setTexture('eq-ui-weapon-wide')
-    this.selectedIcon.setPosition(1420, 680)
-    this.selectedIcon.setScale(1.06)
-  }
-
-  private playSelectionFeedback(): void {
-    if (!this.selectedFrame || !this.selectedIcon) return
-
-    const iconScale = this.currentState === 'grenade' ? 1 : 1.06
-
-    this.tweens.killTweensOf([this.selectedFrame, this.selectedIcon])
-    this.selectedFrame.setAlpha(0.7)
-    this.selectedIcon.setScale(iconScale * 0.96)
-    this.tweens.add({
-      targets: this.selectedFrame,
-      alpha: 1,
-      duration: 170,
-      ease: 'Quad.Out',
-    })
-    this.tweens.add({
-      targets: this.selectedIcon,
-      scaleX: iconScale,
-      scaleY: iconScale,
-      duration: 180,
-      ease: 'Back.Out',
-    })
-  }
-
-  private playCompactStateFeedback(): void {
-    this.tweens.killTweensOf(this.baseBodyImage)
-    this.baseBodyImage.setAlpha(0.86)
-    this.tweens.add({
-      targets: this.baseBodyImage,
-      alpha: 1,
-      duration: 160,
-      ease: 'Quad.Out',
-    })
-  }
-
   private startPulse(): void {
     this.pulseTween?.remove()
   }
 
   private playWeaponFocus(): void {
     if (this.isSequencePlaying) return
-
-    if (!USE_LEGACY_EQUIPMENT_FRAMES) {
-      this.setDisplayedState('revolver', true)
-      if (USE_COMPACT_EQUIPMENT_STATES) {
-        this.playCompactStateFeedback()
-      } else {
-        this.playSelectionFeedback()
-      }
-      return
-    }
 
     if (!this.hasSequenceAssets('revolver-focus')) {
       this.ensureSequenceAssets(
@@ -919,16 +771,6 @@ export class EquipmentScene extends Phaser.Scene {
 
   private playGrenadeFocus(): void {
     if (this.isSequencePlaying) return
-
-    if (!USE_LEGACY_EQUIPMENT_FRAMES) {
-      this.setDisplayedState('grenade', true)
-      if (USE_COMPACT_EQUIPMENT_STATES) {
-        this.playCompactStateFeedback()
-      } else {
-        this.playSelectionFeedback()
-      }
-      return
-    }
 
     // The exported switch animation starts from the revolver detail page.
     this.setDisplayedState('revolver', true)

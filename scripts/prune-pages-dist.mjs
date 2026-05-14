@@ -52,7 +52,7 @@ const pruneTabFrames = (relativeDir, keepFrames) => {
 removeDistPath('assets/debug')
 
 removeDistPath('assets/ui/files/pages/ITEM_coordinate_guide.png')
-removeDistPath('assets/ui/equipment/anims')
+removeDistPath('assets/ui/equipment/states')
 
 for (let frame = 1; frame <= 12; frame += 1) {
   removeDistPath(`assets/ui/start/lights/sequence/${frame}.png`)
