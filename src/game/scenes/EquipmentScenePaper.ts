@@ -48,17 +48,14 @@ const EQUIPMENT_UI_SEQUENCE: Record<
   EquipmentFrameSequence | EquipmentVideoSequence
   > = {
     'revolver-focus': {
-      mode: 'frames',
-      frameKeys: [
-        ...buildFrameKeys('eq-ui-frame-open', 40, 81),
-        ...buildFrameKeys('eq-ui-frame-revolver', 82, 118),
-      ],
+      mode: 'video',
+      bodyVideoKey: 'eq-ui-video-revolver-focus',
       durationMs: 2200,
       hideRoot: true,
     },
   'grenade-focus': {
-    mode: 'frames',
-    frameKeys: buildFrameKeys('eq-ui-frame-grenade', 128, 226),
+    mode: 'video',
+    bodyVideoKey: 'eq-ui-video-grenade-focus',
     durationMs: 3300,
     hideRoot: true,
   },
@@ -190,6 +187,15 @@ const loadImageIfMissing = (
   scene.load.image(key, path)
 }
 
+const loadVideoIfMissing = (
+  scene: Phaser.Scene,
+  key: string,
+  path: string,
+): void => {
+  if (scene.cache.video.exists(key)) return
+  scene.load.video(key, path, true)
+}
+
 export const queueEquipmentShellAssets = (scene: Phaser.Scene): void => {
   for (const [key, fileName] of Object.entries(EQUIPMENT_BASE_ASSETS)) {
     loadImageIfMissing(scene, key, `assets/ui/equipment/items/${fileName}`)
@@ -229,6 +235,16 @@ export const queueEquipmentShellAssets = (scene: Phaser.Scene): void => {
     scene,
     'eq-ui-frame-grenade-00226',
     'assets/ui/equipment/anims/item_grenade_focus/body/frames/inven_00226.png',
+  )
+  loadVideoIfMissing(
+    scene,
+    'eq-ui-video-revolver-focus',
+    'assets/ui/equipment/anims/video/revolver_focus_alpha.webm',
+  )
+  loadVideoIfMissing(
+    scene,
+    'eq-ui-video-grenade-focus',
+    'assets/ui/equipment/anims/video/grenade_focus_alpha.webm',
   )
 }
 
